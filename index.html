@@ -410,30 +410,37 @@ function render() {
 /** ====== CART ACTIONS ====== **/
 function addToCart(sku) {
   const inv = getLocalInv();
-  const remaining = inv[sku] ?? 0;
+  const remainingBase = inv[sku] ?? 0;
   const already = cart[sku] ?? 0;
-  if (already >= remaining) return alert("Not enough inventory remaining.");
+
+  if (already >= remainingBase) return alert("Not enough inventory remaining.");
 
   cart[sku] = already + 1;
-  renderItems();
-  renderCart();
 
+  renderItems();   // <-- REQUIRED so "left" updates immediately
+  renderCart();
 }
+
 
 function changeQty(sku, delta) {
   const q = (cart[sku] ?? 0) + delta;
+
   if (q <= 0) delete cart[sku];
   else cart[sku] = q;
+
+  renderItems();   // <-- REQUIRED so "left" increases back when removed
   renderCart();
 }
+
 
 function clearCart() {
   cart = {};
   $("receiptBox").style.display = "none";
-  renderItems();
-  renderCart();
 
+  renderItems();   // <-- REQUIRED so all "left" values reset back
+  renderCart();
 }
+
 
 /** ====== RECEIPT ====== **/
 function buildReceiptText(sale) {
@@ -594,6 +601,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
