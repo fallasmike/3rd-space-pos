@@ -43,6 +43,14 @@
     .primary { background:#16a34a; }
     .danger { background:#dc2626; }
     .receipt { white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background:#0b1220; color:#e5e7eb; padding:12px; border-radius:12px; font-size:12px; }
+    .catHeader {
+  font-weight: 900;
+  font-size: 14px;
+  margin: 10px 2px 8px;
+  color: #111827;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
   </style>
 </head>
 <body>
@@ -253,10 +261,9 @@ function renderItems() {
     section.style.marginBottom = "14px";
 
     const header = document.createElement("div");
-    header.style.fontWeight = "900";
-    header.style.fontSize = "14px";
-    header.style.margin = "8px 0";
+    header.className = "catHeader";
     header.textContent = cat;
+
 
     const subgrid = document.createElement("div");
     subgrid.className = "grid";
@@ -527,4 +534,5 @@ boot();
 </script>
 </body>
 </html>
+
 
