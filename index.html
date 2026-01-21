@@ -223,8 +223,22 @@ function renderItems() {
 
     const photo = document.createElement("div");
     photo.className = "photo";
-    photo.textContent = "Photo";
-    card.appendChild(photo);
+
+    if (it.photoUrl) {
+      const img = document.createElement("img");
+      img.src = it.photoUrl;
+      img.alt = it.name;
+      img.loading = "lazy";
+      img.style.width = "100%";
+      img.style.height = "100%";
+      img.style.objectFit = "cover";
+      img.style.borderRadius = "12px";
+      photo.appendChild(img);
+    } else {
+      photo.textContent = "Photo";
+    }
+
+card.appendChild(photo);
 
     const name = document.createElement("div");
     name.className = "name";
@@ -534,6 +548,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
