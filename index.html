@@ -241,7 +241,10 @@ function renderItems() {
 
   // Helper: build an item card
   function makeItemCard(it) {
-    const remaining = (inv[it.sku] !== undefined) ? inv[it.sku] : it.remaining;
+    const baseRemaining = (inv[it.sku] !== undefined) ? inv[it.sku] : (Number(it.remaining) || 0);
+    const inCart = cart[it.sku] ?? 0;
+    const remaining = Math.max(0, baseRemaining - inCart);
+
 
     const card = document.createElement("div");
     card.className = "card item";
@@ -412,7 +415,9 @@ function addToCart(sku) {
   if (already >= remaining) return alert("Not enough inventory remaining.");
 
   cart[sku] = already + 1;
+  renderItems();
   renderCart();
+
 }
 
 function changeQty(sku, delta) {
@@ -425,7 +430,9 @@ function changeQty(sku, delta) {
 function clearCart() {
   cart = {};
   $("receiptBox").style.display = "none";
+  renderItems();
   renderCart();
+
 }
 
 /** ====== RECEIPT ====== **/
@@ -587,6 +594,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
