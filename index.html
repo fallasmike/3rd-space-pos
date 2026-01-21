@@ -205,9 +205,9 @@ function renderItems() {
   grid.innerHTML = "";
 
   const inv = getLocalInv();
-  const filtered = activeCategory === "All" ? items : items.filter(i => i.category === activeCategory);
 
-  filtered.forEach(it => {
+  // Helper: build an item card
+  function makeItemCard(it) {
     const remaining = (inv[it.sku] !== undefined) ? inv[it.sku] : it.remaining;
 
     const card = document.createElement("div");
@@ -235,9 +235,42 @@ function renderItems() {
     btn.onclick = () => addToCart(it.sku);
     card.appendChild(btn);
 
-    grid.appendChild(card);
+    return card;
+  }
+
+  // If a specific category is selected, keep the simple grid
+  if (activeCategory !== "All") {
+    const filtered = items.filter(i => i.category === activeCategory);
+    filtered.forEach(it => grid.appendChild(makeItemCard(it)));
+    return;
+  }
+
+  // "All" view: group by category with headers + separate grids
+  const cats = Array.from(new Set(items.map(i => i.category))).sort();
+
+  cats.forEach(cat => {
+    const section = document.createElement("div");
+    section.style.marginBottom = "14px";
+
+    const header = document.createElement("div");
+    header.style.fontWeight = "900";
+    header.style.fontSize = "14px";
+    header.style.margin = "8px 0";
+    header.textContent = cat;
+
+    const subgrid = document.createElement("div");
+    subgrid.className = "grid";
+
+    items
+      .filter(i => i.category === cat)
+      .forEach(it => subgrid.appendChild(makeItemCard(it)));
+
+    section.appendChild(header);
+    section.appendChild(subgrid);
+    grid.appendChild(section);
   });
 }
+
 
 function renderCart() {
   const wrap = $("cart");
@@ -494,3 +527,4 @@ boot();
 </script>
 </body>
 </html>
+
