@@ -12,13 +12,24 @@
     header .pill.ok { background:#065f46; }
     header .pill.bad { background:#7f1d1d; }
     header button { margin-left:auto; background:#2563eb; color:white; border:0; padding:10px 12px; border-radius:10px; font-weight:600; }
-    main { display:grid; grid-template-columns: 1fr 340px; gap:12px; padding:12px; }
+    main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 12px;
+  padding: 12px;
+}
+
     @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
 
-    .grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:10px; }
+    .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
     @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
-    .card { background:white; border-radius:14px; padding:10px; box-shadow:0 2px 10px rgba(0,0,0,.05); }
+    .card { background:white; border-radius:14px; padding:8px; box-shadow:0 2px 10px rgba(0,0,0,.05); }
     .item { display:flex; flex-direction:column; gap:6px; }
     .photo { height:120px; border-radius:12px; background:linear-gradient(135deg,#e5e7eb,#f9fafb); display:flex; align-items:center; justify-content:center; color:#6b7280; font-size:12px; }
     .name { font-weight:700; font-size:14px; line-height:1.2; }
@@ -75,7 +86,7 @@
 </header>
 
 <main>
-  <section style="display:flex; justify-content:space-between; align-items:center; margin-inline: auto;">
+  <section>
     <div class="card">
       <div class="tabs" id="catTabs"></div>
       <div class="grid" id="itemsGrid"></div>
@@ -576,6 +587,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
