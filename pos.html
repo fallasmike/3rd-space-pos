@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>3rd Space POS</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; margin:0; background:#f6f7f9; }
+    header { position: sticky; top:0; background:#111827; color:white; padding:12px 14px; display:flex; gap:10px; align-items:center; z-index:10;}
+    header .title { font-weight:700; }
+    header .pill { padding:6px 10px; border-radius:999px; font-size:12px; background:#374151; }
+    header .pill.ok { background:#065f46; }
+    header .pill.bad { background:#7f1d1d; }
+    header button { margin-left:auto; background:#2563eb; color:white; border:0; padding:10px 12px; border-radius:10px; font-weight:600; }
+    main { display:grid; grid-template-columns: 1fr 340px; gap:12px; padding:12px; }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+
+    .grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:10px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+    .card { background:white; border-radius:14px; padding:10px; box-shadow:0 2px 10px rgba(0,0,0,.05); }
+    .item { display:flex; flex-direction:column; gap:6px; }
+    .photo { height:72px; border-radius:12px; background:linear-gradient(135deg,#e5e7eb,#f9fafb); display:flex; align-items:center; justify-content:center; color:#6b7280; font-size:12px; }
+    .name { font-weight:700; font-size:14px; line-height:1.2; }
+    .meta { display:flex; justify-content:space-between; color:#6b7280; font-size:12px; }
+    .price { font-weight:800; color:#111827; }
+    .remain { font-weight:700; }
+    .btn { width:100%; padding:10px; border-radius:12px; border:0; font-weight:800; background:#111827; color:white; }
+    .btn:disabled { background:#9ca3af; }
+    .tabs { display:flex; gap:8px; margin-bottom:10px; }
+    .tab { padding:8px 10px; border-radius:999px; background:#e5e7eb; font-weight:700; font-size:12px; cursor:pointer; user-select:none; }
+    .tab.active { background:#111827; color:white; }
+
+    .cartRow { display:flex; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid #eef2f7;}
+    .cartRow .left { min-width:0; }
+    .cartRow .sku { font-size:11px; color:#6b7280; }
+    .cartRow .qty { display:flex; gap:6px; align-items:center; }
+    .cartRow button { width:34px; height:34px; border-radius:10px; border:0; background:#e5e7eb; font-weight:900; }
+    .totals { display:flex; justify-content:space-between; font-weight:900; font-size:18px; padding-top:10px; }
+    .small { font-size:12px; color:#6b7280; }
+    input, select { width:100%; padding:10px; border-radius:12px; border:1px solid #e5e7eb; font-size:14px; }
+    .actions { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px; }
+    .primary { background:#16a34a; }
+    .danger { background:#dc2626; }
+    .receipt { white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background:#0b1220; color:#e5e7eb; padding:12px; border-radius:12px; font-size:12px; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="title">3rd Space POS</div>
+  <div id="netPill" class="pill bad">Offline</div>
+  <div id="syncPill" class="pill">Queue: 0</div>
+  <button id="syncBtn" type="button">Sync</button>
+</header>
+
+<main>
+  <section>
+    <div class="card">
+      <div class="tabs" id="catTabs"></div>
+      <div class="grid" id="itemsGrid"></div>
+      <div class="small" style="margin-top:8px;">
+        Tip: Add to Home Screen for full-screen app. Inventory disables items at 0 remaining.
+      </div>
+    </div>
+  </section>
+
+  <aside class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div style="font-weight:900; font-size:18px;">Cart</div>
+      <button class="btn danger" id="clearBtn" type="button" style="width:auto; padding:10px 12px;">Clear</button>
+    </div>
+
+    <div id="cart"></div>
+
+    <div class="totals">
+      <div>Total</div>
+      <div id="total">$0.00</div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label class="small">Payment Type</label>
+      <select id="payment">
+        <option>Cash</option>
+        <option>Venmo</option>
+      </select>
+    </div>
+
+    <div style="margin-top:10px;">
+      <label class="small">Customer Email (optional)</label>
+      <input id="email" type="email" placeholder="name@email.com" autocomplete="email" />
+      <div class="small">If offline, receipt will send later when synced.</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="checkoutBtn" type="button">Complete Sale</button>
+      <button class="btn" id="printBtn" type="button">Show Receipt</button>
+    </div>
+
+    <div id="receiptBox" style="margin-top:12px; display:none;">
+      <div style="font-weight:900; margin-bottom:6px;">Receipt</div>
+      <div class="receipt" id="receipt"></div>
+    </div>
+  </aside>
+</main>
+
+<script>
+/** ====== CONFIG: set these ====== **/
+const API_URL = "https://script.google.com/macros/s/AKfycby54tn2RVqEqH_E8YSwCvcigQCI8_vMlEYK9zIu_QuU5KUS7C84X1193eXl4zGvHMdV/exec";
+const TOKEN   = "pos_3rdspace_7F2qM9xR4WkB8DLaYp6N3EJHcT5V";
+
+/** ====== STORAGE KEYS ====== **/
+const K_ITEMS = "pos_items_cache_v1";
+const K_QUEUE = "pos_sales_queue_v1";
+const K_INV   = "pos_inv_local_v1"; // local remaining by sku
+
+/** ====== STATE ====== **/
+let items = [];
+let categories = [];
+let activeCategory = "All";
+let cart = {}; // sku -> qty
+
+/** ====== UTILS ====== **/
+const $ = (id) => document.getElementById(id);
+const money = (n) => `$${(Number(n)||0).toFixed(2)}`;
+const nowIso = () => new Date().toISOString();
+
+function uuidv4() {
+  // good enough for this use-case
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+    const r = Math.random()*16|0, v = c === "x" ? r : (r&0x3|0x8);
+    return v.toString(16);
+  });
+}
+
+function loadJSON(key, fallback) {
+  try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
+  catch { return fallback; }
+}
+function saveJSON(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+function setOnlineUI(isOnline) {
+  $("netPill").textContent = isOnline ? "Online" : "Offline";
+  $("netPill").className = "pill " + (isOnline ? "ok" : "bad");
+}
+
+/** ====== API ====== **/
+async function apiGetItems() {
+  const url = `${API_URL}?route=items&token=${encodeURIComponent(TOKEN)}`;
+  const res = await fetch(url, { method:"GET" });
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || "Failed to load items");
+  return json.items;
+}
+
+async function apiPostBatch(sales) {
+  const url = `${API_URL}?route=batch&token=${encodeURIComponent(TOKEN)}`;
+  const res = await fetch(url, {
+    method:"POST",
+    headers: { "Content-Type":"application/json" },
+    body: JSON.stringify({ sales })
+  });
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || "Batch sync failed");
+  return json.results || [];
+}
+
+/** ====== INVENTORY ====== **/
+function getLocalInv() {
+  return loadJSON(K_INV, {});
+}
+function setLocalInv(inv) {
+  saveJSON(K_INV, inv);
+}
+function ensureLocalInvInitialized(fromItems) {
+  const inv = getLocalInv();
+  let changed = false;
+  for (const it of fromItems) {
+    if (inv[it.sku] === undefined) { inv[it.sku] = Number(it.remaining)||0; changed = true; }
+  }
+  if (changed) setLocalInv(inv);
+  return inv;
+}
+
+/** ====== RENDER ====== **/
+function computeCategories() {
+  const set = new Set(items.map(i => i.category));
+  categories = ["All", ...Array.from(set).sort()];
+  if (!categories.includes(activeCategory)) activeCategory = "All";
+}
+
+function renderTabs() {
+  const wrap = $("catTabs");
+  wrap.innerHTML = "";
+  categories.forEach(cat => {
+    const el = document.createElement("div");
+    el.className = "tab" + (cat === activeCategory ? " active" : "");
+    el.textContent = cat;
+    el.onclick = () => { activeCategory = cat; render(); };
+    wrap.appendChild(el);
+  });
+}
+
+function renderItems() {
+  const grid = $("itemsGrid");
+  grid.innerHTML = "";
+
+  const inv = getLocalInv();
+  const filtered = activeCategory === "All" ? items : items.filter(i => i.category === activeCategory);
+
+  filtered.forEach(it => {
+    const remaining = (inv[it.sku] !== undefined) ? inv[it.sku] : it.remaining;
+
+    const card = document.createElement("div");
+    card.className = "card item";
+
+    const photo = document.createElement("div");
+    photo.className = "photo";
+    photo.textContent = "Photo";
+    card.appendChild(photo);
+
+    const name = document.createElement("div");
+    name.className = "name";
+    name.textContent = it.name;
+    card.appendChild(name);
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    meta.innerHTML = `<span class="price">${money(it.price)}</span><span class="remain">${remaining} left</span>`;
+    card.appendChild(meta);
+
+    const btn = document.createElement("button");
+    btn.className = "btn";
+    btn.textContent = "Add";
+    btn.disabled = remaining <= 0;
+    btn.onclick = () => addToCart(it.sku);
+    card.appendChild(btn);
+
+    grid.appendChild(card);
+  });
+}
+
+function renderCart() {
+  const wrap = $("cart");
+  wrap.innerHTML = "";
+
+  const inv = getLocalInv();
+  const entries = Object.entries(cart);
+
+  if (entries.length === 0) {
+    wrap.innerHTML = `<div class="small" style="padding:12px 0;">Cart is empty.</div>`;
+    $("total").textContent = money(0);
+    return;
+  }
+
+  let total = 0;
+  entries.forEach(([sku, qty]) => {
+    const it = items.find(x => x.sku === sku);
+    if (!it) return;
+    total += qty * Number(it.price);
+
+    const row = document.createElement("div");
+    row.className = "cartRow";
+
+    const left = document.createElement("div");
+    left.className = "left";
+    left.innerHTML = `<div style="font-weight:800; font-size:13px;">${it.name}</div><div class="sku">${sku}</div>`;
+    row.appendChild(left);
+
+    const right = document.createElement("div");
+    right.className = "qty";
+
+    const minus = document.createElement("button");
+    minus.textContent = "−";
+    minus.onclick = () => changeQty(sku, -1);
+
+    const count = document.createElement("div");
+    count.style.fontWeight = "900";
+    count.textContent = qty;
+
+    const plus = document.createElement("button");
+    plus.textContent = "+";
+    plus.onclick = () => {
+      // enforce local hard inventory
+      const remaining = inv[sku] ?? 0;
+      const already = cart[sku] ?? 0;
+      if (already >= remaining) return alert("Not enough inventory remaining.");
+      changeQty(sku, +1);
+    };
+
+    right.appendChild(minus);
+    right.appendChild(count);
+    right.appendChild(plus);
+
+    row.appendChild(right);
+    wrap.appendChild(row);
+  });
+
+  $("total").textContent = money(total);
+}
+
+function renderSyncPill() {
+  const q = loadJSON(K_QUEUE, []);
+  $("syncPill").textContent = `Queue: ${q.length}`;
+}
+
+function render() {
+  computeCategories();
+  renderTabs();
+  renderItems();
+  renderCart();
+  renderSyncPill();
+}
+
+/** ====== CART ACTIONS ====== **/
+function addToCart(sku) {
+  const inv = getLocalInv();
+  const remaining = inv[sku] ?? 0;
+  const already = cart[sku] ?? 0;
+  if (already >= remaining) return alert("Not enough inventory remaining.");
+
+  cart[sku] = already + 1;
+  renderCart();
+}
+
+function changeQty(sku, delta) {
+  const q = (cart[sku] ?? 0) + delta;
+  if (q <= 0) delete cart[sku];
+  else cart[sku] = q;
+  renderCart();
+}
+
+function clearCart() {
+  cart = {};
+  $("receiptBox").style.display = "none";
+  renderCart();
+}
+
+/** ====== RECEIPT ====== **/
+function buildReceiptText(sale) {
+  const lines = [];
+  lines.push("3rd Space Concessions");
+  lines.push(`Time: ${sale.timestamp}`);
+  lines.push(`Payment: ${sale.paymentType}`);
+  lines.push("");
+  sale.items.forEach(it => {
+    const item = items.find(x => x.sku === it.sku);
+    const name = item ? item.name : it.sku;
+    lines.push(`${it.qty} x ${name}  @ ${money(it.unitPrice)}`);
+  });
+  lines.push("");
+  lines.push(`TOTAL: ${money(sale.items.reduce((s,it)=>s+it.qty*it.unitPrice,0))}`);
+  if (sale.email) lines.push(`Email: ${sale.email}`);
+  return lines.join("\n");
+}
+
+function showReceipt(sale) {
+  $("receipt").textContent = buildReceiptText(sale);
+  $("receiptBox").style.display = "block";
+}
+
+/** ====== SALES: QUEUE + SYNC ====== **/
+function enqueueSale(sale) {
+  const q = loadJSON(K_QUEUE, []);
+  q.push(sale);
+  saveJSON(K_QUEUE, q);
+  renderSyncPill();
+}
+
+function decrementLocalInventoryForSale(sale) {
+  const inv = getLocalInv();
+  sale.items.forEach(it => {
+    inv[it.sku] = (inv[it.sku] ?? 0) - Number(it.qty);
+    if (inv[it.sku] < 0) inv[it.sku] = 0;
+  });
+  setLocalInv(inv);
+}
+
+async function syncQueue() {
+  const q = loadJSON(K_QUEUE, []);
+  if (q.length === 0) return;
+
+  if (!navigator.onLine) {
+    alert("Still offline. Sales are safely queued.");
+    return;
+  }
+
+  // Send in one batch; server dedup + inventory enforcement
+  const results = await apiPostBatch(q);
+
+  // Remove only successes from queue
+  const remaining = [];
+  const failed = [];
+
+  results.forEach((r, idx) => {
+    if (r.ok) {
+      // synced
+    } else {
+      failed.push(r);
+      remaining.push(q[idx]);
+    }
+  });
+
+  saveJSON(K_QUEUE, remaining);
+  renderSyncPill();
+
+  if (failed.length) {
+    alert(`Synced with ${failed.length} errors. First error: ${failed[0].error}`);
+  }
+}
+
+/** ====== CHECKOUT ====== **/
+async function completeSale() {
+  const entries = Object.entries(cart);
+  if (entries.length === 0) return alert("Cart is empty.");
+
+  const inv = getLocalInv();
+  const saleItems = entries.map(([sku, qty]) => {
+    const it = items.find(x => x.sku === sku);
+    return { sku, qty:Number(qty), unitPrice:Number(it.price) };
+  });
+
+  // local hard-inventory check
+  for (const it of saleItems) {
+    const remaining = inv[it.sku] ?? 0;
+    if (it.qty > remaining) return alert(`Not enough inventory for ${it.sku}.`);
+  }
+
+  const sale = {
+    saleId: uuidv4(),
+    timestamp: nowIso(),
+    paymentType: $("payment").value,
+    email: ($("email").value || "").trim(),
+    items: saleItems
+  };
+
+  // Always: apply local inventory + enqueue first (never lose a sale)
+  decrementLocalInventoryForSale(sale);
+  enqueueSale(sale);
+  showReceipt(sale);
+  clearCart();
+
+  // If online: attempt immediate sync
+  if (navigator.onLine) {
+    try { await syncQueue(); }
+    catch (e) { /* keep queued */ }
+  }
+
+  render();
+}
+
+/** ====== STARTUP ====== **/
+async function boot() {
+  setOnlineUI(navigator.onLine);
+
+  // Load cached items first
+  const cached = loadJSON(K_ITEMS, []);
+  if (cached.length) {
+    items = cached;
+    ensureLocalInvInitialized(items);
+    render();
+  }
+
+  // Try to refresh from API if online
+  if (navigator.onLine) {
+    try {
+      const fresh = await apiGetItems();
+      items = fresh;
+      saveJSON(K_ITEMS, items);
+
+      // If you want "true server remaining" to reset local, uncomment this line:
+      // setLocalInv(Object.fromEntries(items.map(i => [i.sku, Number(i.remaining)||0])));
+
+      ensureLocalInvInitialized(items);
+      render();
+    } catch (e) {
+      // stay on cached
+    }
+  }
+
+  // Update UI
+  setOnlineUI(navigator.onLine);
+  renderSyncPill();
+}
+
+window.addEventListener("online", async () => { setOnlineUI(true); try { await syncQueue(); } catch {} });
+window.addEventListener("offline", () => setOnlineUI(false));
+
+$("checkoutBtn").onclick = completeSale;
+$("clearBtn").onclick = () => { if (confirm("Clear the cart?")) clearCart(); };
+$("printBtn").onclick = () => $("receiptBox").style.display = $("receiptBox").style.display === "none" ? "block" : "none";
+$("syncBtn").onclick = async () => { try { await syncQueue(); alert("Sync attempted."); } catch (e) { alert(String(e.message||e)); } };
+
+boot();
+</script>
+</body>
+</html>
