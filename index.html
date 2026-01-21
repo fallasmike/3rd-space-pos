@@ -20,7 +20,7 @@
 
     .card { background:white; border-radius:14px; padding:10px; box-shadow:0 2px 10px rgba(0,0,0,.05); }
     .item { display:flex; flex-direction:column; gap:6px; }
-    .photo { height:72px; border-radius:12px; background:linear-gradient(135deg,#e5e7eb,#f9fafb); display:flex; align-items:center; justify-content:center; color:#6b7280; font-size:12px; }
+    .photo { height:120px; border-radius:12px; background:linear-gradient(135deg,#e5e7eb,#f9fafb); display:flex; align-items:center; justify-content:center; color:#6b7280; font-size:12px; }
     .name { font-weight:700; font-size:14px; line-height:1.2; }
     .meta { display:flex; justify-content:space-between; color:#6b7280; font-size:12px; }
     .price { font-weight:800; color:#111827; }
@@ -43,14 +43,6 @@
     .primary { background:#16a34a; }
     .danger { background:#dc2626; }
     .receipt { white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background:#0b1220; color:#e5e7eb; padding:12px; border-radius:12px; font-size:12px; }
-    .catHeader {
-      font-weight: 900;
-      font-size: 14px;
-      margin: 10px 2px 8px;
-      color: #111827;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
     /* Category section wrapper (used in "All" view) */
 .catSection {
   margin-bottom: 16px;
@@ -64,6 +56,12 @@
   color: #111827;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+  /* All-view: stack category sections vertically for faster scanning */
+.allSections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
   </style>
@@ -283,46 +281,45 @@ card.appendChild(photo);
     return;
   }
 
- // "All" view: group by category with headers + separate grids
+// "All" view: group by category with headers + separate grids
 const preferredOrder = ["Alcohol", "Beverage (NA)", "Food"];
 
 const cats = Array.from(new Set(items.map(i => i.category)))
   .sort((a, b) => {
     const ai = preferredOrder.indexOf(a);
     const bi = preferredOrder.indexOf(b);
-
     const aRank = (ai === -1) ? 999 : ai;
     const bRank = (bi === -1) ? 999 : bi;
-
     if (aRank !== bRank) return aRank - bRank;
-    // Anything not in preferredOrder sorts alphabetically
     return String(a).localeCompare(String(b));
   });
 
+// Wrapper to stack sections vertically
+const wrapper = document.createElement("div");
+wrapper.className = "allSections";
 
-  cats.forEach(cat => {
-    const section = document.createElement("div");
-section.className = "catSection";
+cats.forEach(cat => {
+  const section = document.createElement("div");
+  section.className = "catSection";
 
+  const header = document.createElement("div");
+  header.className = "catHeader";
+  header.textContent = cat;
 
-    const header = document.createElement("div");
-    header.className = "catHeader";
-    header.textContent = cat;
+  const subgrid = document.createElement("div");
+  subgrid.className = "grid";
 
+  items
+    .filter(i => i.category === cat)
+    .forEach(it => subgrid.appendChild(makeItemCard(it)));
 
-    const subgrid = document.createElement("div");
-    subgrid.className = "grid";
+  section.appendChild(header);
+  section.appendChild(subgrid);
+  wrapper.appendChild(section);
+});
 
-    items
-      .filter(i => i.category === cat)
-      .forEach(it => subgrid.appendChild(makeItemCard(it)));
-
-    section.appendChild(header);
-    section.appendChild(subgrid);
-    grid.appendChild(section);
-  });
+grid.appendChild(wrapper);
 }
-
 
 function renderCart() {
   const wrap = $("cart");
@@ -579,6 +576,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
