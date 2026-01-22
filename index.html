@@ -1234,6 +1234,23 @@ $("clearBtn").onclick = () => { if (confirm("Clear the cart?")) clearCart(); };
 $("printBtn").onclick = () => $("receiptBox").style.display = $("receiptBox").style.display === "none" ? "block" : "none";
 $("syncBtn").onclick = async () => { try { await syncQueue(); alert("Sync attempted."); } catch (e) { alert(String(e.message||e)); } };
 
+// ====== VOID / REFUND bindings (Step 7.7) ======
+$("voidBtn").onclick = openVoidModal;
+$("voidClose").onclick = closeVoidModal;
+$("voidConfirm").onclick = confirmVoid;
+
+$("refundCash").onclick = () => {
+  refundMethod = "Cash";
+  $("refundCash").classList.add("active");
+  $("refundVenmo").classList.remove("active");
+};
+
+$("refundVenmo").onclick = () => {
+  refundMethod = "Venmo";
+  $("refundVenmo").classList.add("active");
+  $("refundCash").classList.remove("active");
+};
+
 
 $("voidBtn").onclick = openVoidModal;
 $("voidCloseBtn").onclick = closeVoidModal;
@@ -1308,6 +1325,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
