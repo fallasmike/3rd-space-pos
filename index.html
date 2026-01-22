@@ -154,8 +154,8 @@
   <div class="title">3rd Space POS</div>
   <div id="netPill" class="pill bad">Offline</div>
   <div id="syncPill" class="pill">Queue: 0</div>
+  <button id="voidBtn" type="button">Void / Refund</button>
   <button id="syncBtn" type="button">Sync</button>
-  <button id="voidBtn" type="button" style="background:#f59e0b;">Void/Refund</button>
 </header>
 
 <main>
@@ -313,6 +313,57 @@
 </div>
 
 </main>
+<!-- VOID / REFUND MODAL -->
+<div id="voidModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; padding:12px;">
+  <div class="card" style="max-width:980px; margin:0 auto; padding:12px; height:calc(100vh - 24px); display:flex; flex-direction:column;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+      <div style="font-weight:900; font-size:18px;">Void / Refund (After-Sale)</div>
+      <button id="voidCloseBtn" type="button" class="btn danger" style="width:auto; padding:10px 12px;">Close</button>
+    </div>
+
+    <div class="small" style="margin-top:6px;">
+      This creates a negative money correction and does <b>NOT</b> restore inventory (comp/spoil policy).
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px; min-height:0; flex:1;">
+      <!-- LEFT: sales list -->
+      <div class="card" style="padding:10px; overflow:auto;">
+        <div style="font-weight:900; margin-bottom:8px;">Select a Sale</div>
+        <div id="voidSalesList"></div>
+      </div>
+
+      <!-- RIGHT: items + reason + refund method -->
+      <div class="card" style="padding:10px; overflow:auto;">
+        <div style="font-weight:900; margin-bottom:8px;">Select Items to Refund</div>
+        <div id="voidItemsList">
+          <div class="small">Select a sale on the left.</div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <label class="small">Refund Method</label>
+          <div class="payRow">
+            <button id="refundCash" type="button" class="payBtn active">Cash</button>
+            <button id="refundVenmo" type="button" class="payBtn">Venmo</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <label class="small">Reason (required)</label>
+          <input id="voidReason" type="text" placeholder="e.g. Spoiled / Wrong item / Customer issue" />
+        </div>
+
+        <div class="totals" style="margin-top:12px;">
+          <div>Refund Total</div>
+          <div id="voidTotal">$0.00</div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <button id="voidConfirmBtn" type="button" class="btn danger">Confirm Void / Refund</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 /** ====== CONFIG: set these ====== **/
@@ -1095,6 +1146,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
