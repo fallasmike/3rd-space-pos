@@ -563,9 +563,6 @@ function addToCart(sku) {
 
   renderItems();   // <-- REQUIRED so "left" updates immediately
   renderCart();
-  updateChangeDue();
-updateCheckoutEnabled();
-
 }
 
 
@@ -577,9 +574,6 @@ function changeQty(sku, delta) {
 
   renderItems();   // <-- REQUIRED so "left" increases back when removed
   renderCart();
-  updateChangeDue();
-updateCheckoutEnabled();
-
 }
 
 
@@ -589,9 +583,6 @@ function clearCart() {
 
   renderItems();   // <-- REQUIRED so all "left" values reset back
   renderCart();
-  updateChangeDue();
-updateCheckoutEnabled();
-
 }
 
 
@@ -816,6 +807,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
