@@ -472,8 +472,9 @@ function renderSyncPill() {
     return sum + (Number(qty) * Number(it.price));
   }, 0);
 }
-
+  
 function setPayment(type) {
+  const prev = paymentType;
   paymentType = type;
 
   // toggle button UI
@@ -483,16 +484,19 @@ function setPayment(type) {
   // show/hide cash tender section
   $("cashBox").style.display = (type === "Cash") ? "block" : "none";
 
-  // Reset tender state whenever switching payment modes
-  cashTendered = null;
-  cashMode = null;
-  setCashButtonsActive(null);
-  $("cashManual").style.display = "none";
-  if ($("cashOther")) $("cashOther").value = "";
+  // Only reset tender state when the payment type CHANGES
+  if (prev !== type) {
+    cashTendered = null;
+    cashMode = null;
+    setCashButtonsActive(null);
+    $("cashManual").style.display = "none";
+    if ($("cashOther")) $("cashOther").value = "";
+  }
 
   updateChangeDue();
   updateCheckoutEnabled();
 }
+
 
 
 function setCashButtonsActive(mode) {
@@ -807,13 +811,12 @@ $("cashOther").addEventListener("input", () => {
   updateCheckoutEnabled();
 });
   
-  setPayment("Cash");   // default
-updateChangeDue();
-updateCheckoutEnabled();
+setPayment("Cash");   // default
 boot();
 </script>
 </body>
 </html>
+
 
 
 
