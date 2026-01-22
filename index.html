@@ -512,7 +512,7 @@ function renderCart() {
 
   const inv = getLocalInv();
   const entries = Object.entries(cart);
-
+if (entries.length === 0) return alert("Cart is empty.");
   if (entries.length === 0) {
     wrap.innerHTML = `<div class="small" style="padding:12px 0;">Cart is empty.</div>`;
     $("total").textContent = money(0);
@@ -814,15 +814,12 @@ async function syncQueue() {
 /** ====== CHECKOUT ====== **/
 async function completeSale() {
   const entries = Object.entries(cart);
-  if (sale.paymentType === "Cash") {
-  alert(`Change due: ${money(sale.changeProvided ?? 0)}`);
-}
-
+  if (entries.length === 0) return alert("Cart is empty.");
 
   const inv = getLocalInv();
   const saleItems = entries.map(([sku, qty]) => {
     const it = items.find(x => x.sku === sku);
-    return { sku, qty:Number(qty), unitPrice:Number(it.price) };
+    return { sku, qty: Number(qty), unitPrice: Number(it.price) };
   });
 
   // local hard-inventory check
@@ -830,67 +827,62 @@ async function completeSale() {
     const remaining = inv[it.sku] ?? 0;
     if (it.qty > remaining) return alert(`Not enough inventory for ${it.sku}.`);
   }
-  
-const total = saleItems.reduce((s,it)=>s+it.qty*it.unitPrice,0);
 
-let cashGiven = null;
-let changeProvided = null;
+  const total = saleItems.reduce((s,it)=>s + it.qty * it.unitPrice, 0);
 
-if (paymentType === "Cash") {
-  const tendered = (cashMode === "other") ? parseCashOther() : cashTendered;
-  if (tendered == null) return alert("Select or enter the cash amount received.");
-  if (tendered < total) return alert("Cash received cannot be less than the Total.");
+  let cashGiven = null;
+  let changeProvided = null;
 
-  cashGiven = tendered;
-  changeProvided = Math.max(0, tendered - total);
-}
+  if (paymentType === "Cash") {
+    const tendered = (cashMode === "other") ? parseCashOther() : cashTendered;
+    if (tendered == null) return alert("Select or enter the cash amount received.");
+    if (tendered < total) return alert("Cash received cannot be less than the Total.");
 
-const sale = {
-  saleId: uuidv4(),
-  timestamp: nowIso(),                 // keep ISO for syncing + server truth
-  paymentType: paymentType,
-  email: ($("email").value || "").trim(),
-  items: saleItems,
-  total: total,                        // helpful for server + receipt
-  cashGiven: cashGiven,                // number or null
-  changeProvided: changeProvided        // number or null
-};
+    cashGiven = tendered;
+    changeProvided = Math.max(0, tendered - total);
+  }
 
+  const sale = {
+    saleId: uuidv4(),
+    timestamp: nowIso(),
+    paymentType: paymentType,
+    email: ($("email").value || "").trim(),
+    items: saleItems,
+    total: total,
+    cashGiven: cashGiven,
+    changeProvided: changeProvided
+  };
 
-
-  
   // Always: apply local inventory + enqueue first (never lose a sale)
   decrementLocalInventoryForSale(sale);
   enqueueSale(sale);
   showReceipt(sale);
-  if (paymentType === "Cash") {
-  const total = sale.items.reduce((s,it)=>s+it.qty*it.unitPrice,0);
-  const tendered = (cashMode === "other") ? parseCashOther() : cashTendered;
-  const change = (tendered ?? 0) - total;
-  alert(`Change due: ${money(Math.max(0, change))}`);
-}
+
+  if (sale.paymentType === "Cash") {
+    alert(`Change due: ${money(sale.changeProvided ?? 0)}`);
+  }
 
   clearCart();
-if (paymentType === "Cash") {
-  cashTendered = null;
-  cashMode = null;
-  setCashButtonsActive(null);
-  $("cashManual").style.display = "none";
-  $("cashOther").value = "";
-  updateChangeDue();
-  updateCheckoutEnabled();
-}
 
-
+  if (paymentType === "Cash") {
+    cashTendered = null;
+    cashMode = null;
+    setCashButtonsActive(null);
+    $("cashManual").style.display = "none";
+    $("cashOther").value = "";
+    showKeypad(false);
+    updateChangeDue();
+    updateCheckoutEnabled();
+  }
 
   // If online: attempt immediate sync
   if (navigator.onLine) {
-    try { await syncQueue(); }
-    catch (e) { /* keep queued */ }
+    try { await syncQueue(); } catch (e) { /* keep queued */ }
   }
 
   render();
 }
+
 
 /** ====== STARTUP ====== **/
 async function boot() {
@@ -963,6 +955,7 @@ document.querySelectorAll(".cashBtn").forEach(btn => {
       cashTendered = null;
       $("cashManual").style.display = "block";
       showKeypad(true);
+      setCashOtherValue(""); // clears and updates change/checkout
     } else {
       showKeypad(false);
       $("cashManual").style.display = "none";
@@ -997,6 +990,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
