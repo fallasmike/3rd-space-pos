@@ -982,6 +982,9 @@ function renderVoidItemsList() {
     return;
   }
 
+  const refundedMap = getRefundedQtyMapForSale(selectedSaleForVoid.saleId);
+
+
   selectedSaleForVoid.items.forEach(it => {
     const item = items.find(x => x.sku === it.sku);
     const name = item ? item.name : it.sku;
@@ -994,7 +997,9 @@ function renderVoidItemsList() {
     left.className = "left";
     left.innerHTML = `
       <div style="font-weight:800; font-size:13px;">${name}</div>
-      <div class="small">Sold: ${it.qty} @ ${money(it.unitPrice)}</div>
+      <div class="small">
+  Sold: ${it.qty} @ ${money(it.unitPrice)} • Refunded: ${Number(refundedMap[it.sku] || 0)}
+</div>
     `;
 
     const right = document.createElement("div");
@@ -1016,12 +1021,17 @@ function renderVoidItemsList() {
     const plus = document.createElement("button");
     plus.textContent = "+";
     plus.onclick = () => {
-      const cur = voidCart[it.sku] ?? 0;
-      if (cur >= it.qty) return;
-      voidCart[it.sku] = cur + 1;
-      renderVoidItemsList();
-      updateVoidTotal();
-    };
+  const alreadyRefunded = Number(refundedMap[it.sku] || 0);
+  const maxRefundable = Math.max(0, Number(it.qty) - alreadyRefunded);
+
+  const cur = voidCart[it.sku] ?? 0;
+  if (cur >= maxRefundable) return;
+
+  voidCart[it.sku] = cur + 1;
+  renderVoidItemsList();
+  updateVoidTotal();
+};
+
 
     right.appendChild(minus);
     right.appendChild(count);
@@ -1331,6 +1341,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
