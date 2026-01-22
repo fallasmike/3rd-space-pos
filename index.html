@@ -512,7 +512,6 @@ function renderCart() {
 
   const inv = getLocalInv();
   const entries = Object.entries(cart);
-if (entries.length === 0) return alert("Cart is empty.");
   if (entries.length === 0) {
     wrap.innerHTML = `<div class="small" style="padding:12px 0;">Cart is empty.</div>`;
     $("total").textContent = money(0);
@@ -990,6 +989,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
