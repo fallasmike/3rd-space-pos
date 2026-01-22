@@ -278,7 +278,17 @@ const K_ITEMS = "pos_items_cache_v1";
 const K_QUEUE = "pos_sales_queue_v1";
 const K_INV   = "pos_inv_local_v1"; // local remaining by sku
 const K_SALES = "pos_sales_history_v1"; // local log of completed sales (for void/refund UI)
-  
+
+function getSalesHistory() {
+  return loadJSON(K_SALES, []);
+}
+
+function addSaleToHistory(sale) {
+  const history = getSalesHistory();
+  history.unshift(sale);                 // newest first
+  history.splice(200);                   // keep last 200
+  saveJSON(K_SALES, history);
+}
 
 /** ====== STATE ====== **/
 let items = [];
@@ -1031,6 +1041,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
