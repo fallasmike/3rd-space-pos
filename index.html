@@ -27,7 +27,6 @@
   gap: 12px;
 }
 
-    @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
     .card { background:white; border-radius:14px; padding:8px; box-shadow:0 2px 10px rgba(0,0,0,.05); }
     .item { display:flex; flex-direction:column; gap:6px; }
@@ -407,6 +406,8 @@ function renderCart() {
   if (entries.length === 0) {
     wrap.innerHTML = `<div class="small" style="padding:12px 0;">Cart is empty.</div>`;
     $("total").textContent = money(0);
+    updateChangeDue();
+updateCheckoutEnabled();
     return;
   }
 
@@ -546,10 +547,7 @@ function render() {
   renderCart();
   renderSyncPill();
 }
-  setPayment("Cash");   // default
-$("cashBox").style.display = "block";
-updateChangeDue();
-updateCheckoutEnabled();
+
 
 
 /** ====== CART ACTIONS ====== **/
@@ -685,7 +683,14 @@ async function completeSale() {
     const remaining = inv[it.sku] ?? 0;
     if (it.qty > remaining) return alert(`Not enough inventory for ${it.sku}.`);
   }
+  
+const total = saleItems.reduce((s,it)=>s+it.qty*it.unitPrice,0);
 
+if (paymentType === "Cash") {
+  const tendered = (cashMode === "other") ? parseCashOther() : cashTendered;
+  if (tendered == null) return alert("Select or enter the cash amount received.");
+  if (tendered < total) return alert("Cash received cannot be less than the Total.");
+}
   const sale = {
     saleId: uuidv4(),
     timestamp: nowIso(),
@@ -694,13 +699,7 @@ async function completeSale() {
     items: saleItems
   };
 
-const total = saleItems.reduce((s,it)=>s+it.qty*it.unitPrice,0);
 
-if (paymentType === "Cash") {
-  const tendered = (cashMode === "other") ? parseCashOther() : cashTendered;
-  if (tendered == null) return alert("Select or enter the cash amount received.");
-  if (tendered < total) return alert("Cash received cannot be less than the Total.");
-}
   
   // Always: apply local inventory + enqueue first (never lose a sale)
   decrementLocalInventoryForSale(sale);
@@ -714,14 +713,16 @@ if (paymentType === "Cash") {
 }
 
   clearCart();
-  if (paymentType === "Cash") {
+if (paymentType === "Cash") {
   cashTendered = null;
   cashMode = null;
   setCashButtonsActive(null);
   $("cashManual").style.display = "none";
   $("cashOther").value = "";
   updateChangeDue();
+  updateCheckoutEnabled();
 }
+
 
 
   // If online: attempt immediate sync
@@ -808,11 +809,15 @@ $("cashOther").addEventListener("input", () => {
   updateChangeDue();
   updateCheckoutEnabled();
 });
-
+  
+  setPayment("Cash");   // default
+updateChangeDue();
+updateCheckoutEnabled();
 boot();
 </script>
 </body>
 </html>
+
 
 
 
