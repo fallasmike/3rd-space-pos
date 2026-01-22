@@ -701,22 +701,60 @@ function clearCart() {
 
 
 /** ====== RECEIPT ====== **/
+function formatDateMMDDYYYY(d) {
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${mm}/${dd}/${yyyy}`;
+}
+
+function formatTime12h(d) {
+  let h = d.getHours();
+  const m = String(d.getMinutes()).padStart(2, "0");
+  const ampm = h >= 12 ? "pm" : "am";
+  h = h % 12;
+  if (h === 0) h = 12;
+  return `${h}:${m}${ampm}`;
+}
+
 function buildReceiptText(sale) {
+  const dt = new Date(sale.timestamp);
   const lines = [];
-  lines.push("3rd Space Concessions");
-  lines.push(`Time: ${sale.timestamp}`);
-  lines.push(`Payment: ${sale.paymentType}`);
+
+  lines.push("Thanks for supporting us!");
   lines.push("");
+  lines.push("Receipt:");
+  lines.push("");
+
   sale.items.forEach(it => {
     const item = items.find(x => x.sku === it.sku);
     const name = item ? item.name : it.sku;
-    lines.push(`${it.qty} x ${name}  @ ${money(it.unitPrice)}`);
+    lines.push(`${it.qty}x ${name} @ ${money(it.unitPrice)}`);
   });
+
   lines.push("");
-  lines.push(`TOTAL: ${money(sale.items.reduce((s,it)=>s+it.qty*it.unitPrice,0))}`);
-  if (sale.email) lines.push(`Email: ${sale.email}`);
+  lines.push(`Payment: ${sale.paymentType}`);
+
+  // totals
+  const total = (sale.total != null)
+    ? Number(sale.total)
+    : sale.items.reduce((s,it)=>s+it.qty*it.unitPrice,0);
+
+  lines.push(`Total: ${money(total)}`);
+
+  if (sale.paymentType === "Cash") {
+    if (sale.cashGiven != null) lines.push(`Cash given: ${money(sale.cashGiven)}`);
+    if (sale.changeProvided != null) lines.push(`Change provided: ${money(sale.changeProvided)}`);
+  }
+
+  lines.push("");
+  lines.push(`Date: ${formatDateMMDDYYYY(dt)}`);
+  lines.push(`Time: ${formatTime12h(dt)}`);
+  lines.push(`Sale ID: ${sale.saleId}`);
+
   return lines.join("\n");
 }
+
 
 function showReceipt(sale) {
   $("receipt").textContent = buildReceiptText(sale);
@@ -776,7 +814,10 @@ async function syncQueue() {
 /** ====== CHECKOUT ====== **/
 async function completeSale() {
   const entries = Object.entries(cart);
-  if (entries.length === 0) return alert("Cart is empty.");
+  if (sale.paymentType === "Cash") {
+  alert(`Change due: ${money(sale.changeProvided ?? 0)}`);
+}
+
 
   const inv = getLocalInv();
   const saleItems = entries.map(([sku, qty]) => {
@@ -956,6 +997,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
