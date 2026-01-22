@@ -864,6 +864,185 @@ function showReceipt(sale) {
   $("receiptBox").style.display = "block";
 }
 
+/** ====== VOID / REFUND ====== **/
+function openVoidModal() {
+  $("voidModal").style.display = "block";
+  selectedSaleForVoid = null;
+  voidCart = {};
+  refundMethod = "Cash";
+
+  $("refundCash").classList.add("active");
+  $("refundVenmo").classList.remove("active");
+  $("voidReason").value = "";
+  $("voidItemsList").innerHTML = `<div class="small">Select a sale on the left.</div>`;
+  $("voidTotal").textContent = money(0);
+
+  renderVoidSalesList();
+}
+
+function closeVoidModal() {
+  $("voidModal").style.display = "none";
+}
+
+function renderVoidSalesList() {
+  const history = getSalesHistory();
+  const wrap = $("voidSalesList");
+  wrap.innerHTML = "";
+
+  const salesOnly = history.filter(s => s.type === "sale");
+
+  if (!salesOnly.length) {
+    wrap.innerHTML = `<div class="small">No sales found yet.</div>`;
+    return;
+  }
+
+  salesOnly.forEach(sale => {
+    const dt = new Date(sale.timestamp);
+
+    const row = document.createElement("div");
+    row.className = "cartRow";
+    row.style.cursor = "pointer";
+    row.innerHTML = `
+      <div class="left">
+        <div style="font-weight:900; font-size:13px;">${formatDateMMDDYYYY(dt)} ${formatTime12h(dt)}</div>
+        <div class="small">Sale ID: ${sale.saleId}</div>
+        <div class="small">Payment: ${sale.paymentType} • Collected: ${money(sale.total ?? 0)}</div>
+      </div>
+      <div style="font-weight:900;">Select</div>
+    `;
+    row.onclick = () => selectSaleForVoid(sale.saleId);
+    wrap.appendChild(row);
+  });
+}
+
+function selectSaleForVoid(saleId) {
+  const sale = getSalesHistory().find(s => s.type === "sale" && s.saleId === saleId);
+  if (!sale) return;
+
+  selectedSaleForVoid = sale;
+
+  voidCart = {};
+  sale.items.forEach(it => { voidCart[it.sku] = 0; });
+
+  renderVoidItemsList();
+  updateVoidTotal();
+}
+
+function renderVoidItemsList() {
+  const wrap = $("voidItemsList");
+  wrap.innerHTML = "";
+
+  if (!selectedSaleForVoid) {
+    wrap.innerHTML = `<div class="small">Select a sale on the left.</div>`;
+    return;
+  }
+
+  selectedSaleForVoid.items.forEach(it => {
+    const item = items.find(x => x.sku === it.sku);
+    const name = item ? item.name : it.sku;
+
+    const row = document.createElement("div");
+    row.className = "cartRow";
+
+    const left = document.createElement("div");
+    left.className = "left";
+    left.innerHTML = `
+      <div style="font-weight:800; font-size:13px;">${name}</div>
+      <div class="small">Sold: ${it.qty} @ ${money(it.unitPrice)}</div>
+    `;
+
+    const right = document.createElement("div");
+    right.className = "qty";
+
+    const minus = document.createElement("button");
+    minus.textContent = "−";
+    minus.onclick = () => {
+      const cur = voidCart[it.sku] ?? 0;
+      voidCart[it.sku] = Math.max(0, cur - 1);
+      renderVoidItemsList();
+      updateVoidTotal();
+    };
+
+    const count = document.createElement("div");
+    count.style.fontWeight = "900";
+    count.textContent = String(voidCart[it.sku] ?? 0);
+
+    const plus = document.createElement("button");
+    plus.textContent = "+";
+    plus.onclick = () => {
+      const cur = voidCart[it.sku] ?? 0;
+      if (cur >= it.qty) return;
+      voidCart[it.sku] = cur + 1;
+      renderVoidItemsList();
+      updateVoidTotal();
+    };
+
+    right.appendChild(minus);
+    right.appendChild(count);
+    right.appendChild(plus);
+
+    row.appendChild(left);
+    row.appendChild(right);
+    wrap.appendChild(row);
+  });
+}
+
+function updateVoidTotal() {
+  if (!selectedSaleForVoid) {
+    $("voidTotal").textContent = money(0);
+    return;
+  }
+
+  let refund = 0;
+  selectedSaleForVoid.items.forEach(it => {
+    const q = Number(voidCart[it.sku] || 0);
+    refund += q * Number(it.unitPrice);
+  });
+
+  $("voidTotal").textContent = money(refund);
+}
+
+function buildVoidTransaction() {
+  if (!selectedSaleForVoid) return null;
+
+  const voidItems = selectedSaleForVoid.items
+    .map(it => ({ sku: it.sku, qty: Number(voidCart[it.sku] || 0), unitPrice: Number(it.unitPrice) }))
+    .filter(x => x.qty > 0);
+
+  if (!voidItems.length) return null;
+
+  const refundSubtotal = voidItems.reduce((s, it) => s + it.qty * it.unitPrice, 0);
+
+  return {
+    type: "void",
+    voidId: uuidv4(),
+    timestamp: nowIso(),
+
+    originalSaleId: selectedSaleForVoid.saleId,
+    refundMethod: refundMethod,
+    reason: ($("voidReason").value || "").trim(),
+
+    items: voidItems,
+    subtotal: refundSubtotal,
+    total: -refundSubtotal
+  };
+}
+
+function confirmVoid() {
+  const txn = buildVoidTransaction();
+  if (!txn) return alert("Select at least 1 item to void/refund.");
+
+  if (!confirm(`Confirm refund for ${money(txn.subtotal)}? (Inventory will NOT be restored.)`)) return;
+
+  enqueueSale(txn);
+  addSaleToHistory(txn);
+  showReceipt(txn);
+
+  closeVoidModal();
+  renderSyncPill();
+}
+
+  
 /** ====== SALES: QUEUE + SYNC ====== **/
 function enqueueSale(sale) {
   const q = loadJSON(K_QUEUE, []);
@@ -1039,6 +1218,14 @@ $("clearBtn").onclick = () => { if (confirm("Clear the cart?")) clearCart(); };
 $("printBtn").onclick = () => $("receiptBox").style.display = $("receiptBox").style.display === "none" ? "block" : "none";
 $("syncBtn").onclick = async () => { try { await syncQueue(); alert("Sync attempted."); } catch (e) { alert(String(e.message||e)); } };
 
+
+$("voidBtn").onclick = openVoidModal;
+$("voidCloseBtn").onclick = closeVoidModal;
+$("refundCash").onclick = () => { refundMethod = "Cash"; $("refundCash").classList.add("active"); $("refundVenmo").classList.remove("active"); };
+$("refundVenmo").onclick = () => { refundMethod = "Venmo"; $("refundVenmo").classList.add("active"); $("refundCash").classList.remove("active"); };
+$("voidConfirmBtn").onclick = confirmVoid;
+
+
   // Payment toggle buttons
 $("payCash").onclick = () => setPayment("Cash");
 $("payVenmo").onclick = () => setPayment("Venmo");
@@ -1105,6 +1292,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
