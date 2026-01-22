@@ -792,11 +792,18 @@ async function completeSale() {
   
 const total = saleItems.reduce((s,it)=>s+it.qty*it.unitPrice,0);
 
+let cashGiven = null;
+let changeProvided = null;
+
 if (paymentType === "Cash") {
   const tendered = (cashMode === "other") ? parseCashOther() : cashTendered;
   if (tendered == null) return alert("Select or enter the cash amount received.");
   if (tendered < total) return alert("Cash received cannot be less than the Total.");
+
+  cashGiven = tendered;
+  changeProvided = Math.max(0, tendered - total);
 }
+
   const sale = {
     saleId: uuidv4(),
     timestamp: nowIso(),
@@ -945,6 +952,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
