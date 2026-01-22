@@ -693,7 +693,8 @@ function changeQty(sku, delta) {
 function clearCart() {
   cart = {};
   $("receiptBox").style.display = "none";
-
+  $("email").value = "";          // <-- clear customer email when clearing cart
+  
   renderItems();   // <-- REQUIRED so all "left" values reset back
   renderCart();
 }
@@ -856,7 +857,9 @@ async function completeSale() {
   decrementLocalInventoryForSale(sale);
   enqueueSale(sale);
   showReceipt(sale);
+  $("email").value = "";   // <-- clear customer email after completing sale
 
+  
   if (sale.paymentType === "Cash") {
     alert(`Change due: ${money(sale.changeProvided ?? 0)}`);
   }
@@ -989,6 +992,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
