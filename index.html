@@ -588,6 +588,9 @@ function setPayment(type) {
   // show/hide cash tender section
   $("cashBox").style.display = (type === "Cash") ? "block" : "none";
 
+  // If switching away from Cash, always hide keypad
+  if (type !== "Cash") showKeypad(false);
+
   // Only reset tender state when the payment type CHANGES
   if (prev !== type) {
     cashTendered = null;
@@ -600,6 +603,7 @@ function setPayment(type) {
   updateChangeDue();
   updateCheckoutEnabled();
 }
+
 
 
 
@@ -876,27 +880,44 @@ $("syncBtn").onclick = async () => { try { await syncQueue(); alert("Sync attemp
 $("payCash").onclick = () => setPayment("Cash");
 $("payVenmo").onclick = () => setPayment("Venmo");
 
-// Cash quick buttons
+// Cash quick buttons (with deselect toggle + keypad)
 document.querySelectorAll(".cashBtn").forEach(btn => {
   btn.onclick = () => {
     const v = btn.dataset.amt;
 
-    // TOGGLE: if clicking the currently-selected button, deselect it
-    const isAlreadySelected = (cashMode === v);
-
-    if (isAlreadySelected) {
+    // Toggle off if clicking same amount again (NOT for "other")
+    if (cashMode === v && v !== "other") {
       cashMode = null;
       cashTendered = null;
       setCashButtonsActive(null);
-
-      // Hide manual input if it was "Other"
       $("cashManual").style.display = "none";
+      showKeypad(false);
       if ($("cashOther")) $("cashOther").value = "";
-
       updateChangeDue();
       updateCheckoutEnabled();
       return;
     }
+
+    cashMode = v;
+    setCashButtonsActive(v);
+
+    if (v === "other") {
+      cashTendered = null;
+      $("cashManual").style.display = "block";
+      showKeypad(true);         // show keypad
+      // no focus (readonly) needed
+    } else {
+      showKeypad(false);        // leaving "other" hides keypad
+      $("cashManual").style.display = "none";
+      if ($("cashOther")) $("cashOther").value = "";
+      cashTendered = Number(v);
+    }
+
+    updateChangeDue();
+    updateCheckoutEnabled();
+  };
+});
+
 
     // Otherwise select it
     cashMode = v;
@@ -916,21 +937,29 @@ document.querySelectorAll(".cashBtn").forEach(btn => {
     updateCheckoutEnabled();
   };
 });
-
-
-// Manual cash input
-$("cashOther").addEventListener("input", () => {
-  cashMode = "other";
-  setCashButtonsActive("other");
-  updateChangeDue();
-  updateCheckoutEnabled();
+  // Tapping the readonly input opens keypad (only if Other mode is active)
+$("cashOther").addEventListener("click", () => {
+  if (cashMode === "other") showKeypad(true);
 });
-  
+
+// Keypad button clicks
+document.querySelectorAll("#keypad .key[data-k]").forEach(btn => {
+  btn.onclick = () => {
+    const k = btn.dataset.k;
+    if (k === "back") return keypadBackspace();
+    keypadAppend(k);
+  };
+});
+
+$("keyClear").onclick = () => setCashOtherValue("");
+$("keyDone").onclick = () => showKeypad(false);
+
 setPayment("Cash");   // default
 boot();
 </script>
 </body>
 </html>
+
 
 
 
