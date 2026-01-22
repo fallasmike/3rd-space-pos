@@ -162,7 +162,15 @@
 
   <div id="cashManual" class="cashManual">
     <label class="small" style="display:block;">Enter amount</label>
-    <input id="cashOther" inputmode="decimal" placeholder="e.g. 23" />
+    <input
+  id="cashOther"
+  type="number"
+  inputmode="decimal"
+  placeholder="e.g. 23"
+  min="0"
+  step="0.01"
+/>
+
   </div>
 
   <div class="changeLine">
@@ -827,6 +835,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
