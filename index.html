@@ -277,6 +277,8 @@ const TOKEN   = "pos_3rdspace_7F2qM9xR4WkB8DLaYp6N3EJHcT5V";
 const K_ITEMS = "pos_items_cache_v1";
 const K_QUEUE = "pos_sales_queue_v1";
 const K_INV   = "pos_inv_local_v1"; // local remaining by sku
+const K_SALES = "pos_sales_history_v1"; // local log of completed sales (for void/refund UI)
+  
 
 /** ====== STATE ====== **/
 let items = [];
@@ -1029,6 +1031,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
