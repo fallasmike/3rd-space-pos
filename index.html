@@ -777,6 +777,24 @@ document.querySelectorAll(".cashBtn").forEach(btn => {
   btn.onclick = () => {
     const v = btn.dataset.amt;
 
+    // TOGGLE: if clicking the currently-selected button, deselect it
+    const isAlreadySelected = (cashMode === v);
+
+    if (isAlreadySelected) {
+      cashMode = null;
+      cashTendered = null;
+      setCashButtonsActive(null);
+
+      // Hide manual input if it was "Other"
+      $("cashManual").style.display = "none";
+      if ($("cashOther")) $("cashOther").value = "";
+
+      updateChangeDue();
+      updateCheckoutEnabled();
+      return;
+    }
+
+    // Otherwise select it
     cashMode = v;
     setCashButtonsActive(v);
 
@@ -786,6 +804,7 @@ document.querySelectorAll(".cashBtn").forEach(btn => {
       $("cashOther").focus();
     } else {
       $("cashManual").style.display = "none";
+      if ($("cashOther")) $("cashOther").value = "";
       cashTendered = Number(v);
     }
 
@@ -793,6 +812,7 @@ document.querySelectorAll(".cashBtn").forEach(btn => {
     updateCheckoutEnabled();
   };
 });
+
 
 // Manual cash input
 $("cashOther").addEventListener("input", () => {
@@ -807,6 +827,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
