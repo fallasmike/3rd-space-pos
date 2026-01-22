@@ -42,6 +42,38 @@
     .tab { padding:8px 10px; border-radius:999px; background:#e5e7eb; font-weight:700; font-size:12px; cursor:pointer; user-select:none; }
     .tab.active { background:#111827; color:white; }
 
+    .payRow { display:flex; gap:10px; margin-top:8px; }
+    .payBtn {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #f3f4f6;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .payBtn.active {
+      background: #111827;
+      color: white;
+      border-color: #111827;
+    }
+    
+    .cashBox { margin-top: 10px; display:none; }
+    .cashQuick { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:10px; margin-top:8px; }
+    .cashBtn {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      background: #f3f4f6;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .cashBtn.active { background:#111827; color:#fff; border-color:#111827; }
+    .cashManual { margin-top:10px; display:none; }
+    .changeLine { margin-top:10px; font-weight:900; font-size:14px; }
+    .changeLine .small { font-weight:700; }
+
+    
     .cartRow { display:flex; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid #eef2f7;}
     .cartRow .left { min-width:0; }
     .cartRow .sku { font-size:11px; color:#6b7280; }
@@ -110,11 +142,36 @@
     </div>
 
     <div style="margin-top:12px;">
-      <label class="small">Payment Type</label>
-      <select id="payment">
-        <option>Cash</option>
-        <option>Venmo</option>
-      </select>
+<label class="small">Payment Type</label>
+<div class="payRow">
+  <button id="payCash" type="button" class="payBtn active">Cash</button>
+  <button id="payVenmo" type="button" class="payBtn">Venmo</button>
+</div>
+
+<!-- Cash tender UI -->
+<div id="cashBox" class="cashBox">
+  <label class="small" style="display:block; margin-top:10px;">Cash Received</label>
+
+  <div class="cashQuick">
+    <button type="button" class="cashBtn" data-amt="5">$5</button>
+    <button type="button" class="cashBtn" data-amt="10">$10</button>
+    <button type="button" class="cashBtn" data-amt="15">$15</button>
+    <button type="button" class="cashBtn" data-amt="20">$20</button>
+    <button type="button" class="cashBtn" data-amt="50">$50</button>
+    <button type="button" class="cashBtn" data-amt="other">Other</button>
+  </div>
+
+  <div id="cashManual" class="cashManual">
+    <label class="small" style="display:block;">Enter amount</label>
+    <input id="cashOther" inputmode="decimal" placeholder="e.g. 23" />
+  </div>
+
+  <div class="changeLine">
+    <span class="small">Change Due:</span>
+    <span id="changeDue">$0.00</span>
+  </div>
+</div>
+
     </div>
 
     <div style="margin-top:10px;">
@@ -152,6 +209,11 @@ let items = [];
 let categories = [];
 let activeCategory = "All";
 let cart = {}; // sku -> qty
+
+let paymentType = "Cash";       // "Cash" or "Venmo"
+let cashTendered = null;        // number or null
+let cashMode = null;            // 5/10/15/20/50/"other"/null
+ 
 
 /** ====== UTILS ====== **/
 const $ = (id) => document.getElementById(id);
@@ -392,11 +454,89 @@ function renderCart() {
   });
 
   $("total").textContent = money(total);
+  updateChangeDue();
+updateCheckoutEnabled();
+
 }
 
 function renderSyncPill() {
   const q = loadJSON(K_QUEUE, []);
   $("syncPill").textContent = `Queue: ${q.length}`;
+}
+
+  function cartTotal() {
+  return Object.entries(cart).reduce((sum, [sku, qty]) => {
+    const it = items.find(x => x.sku === sku);
+    if (!it) return sum;
+    return sum + (Number(qty) * Number(it.price));
+  }, 0);
+}
+
+function setPayment(type) {
+  paymentType = type;
+
+  // toggle button UI
+  $("payCash").classList.toggle("active", type === "Cash");
+  $("payVenmo").classList.toggle("active", type === "Venmo");
+
+  // show/hide cash tender section
+  $("cashBox").style.display = (type === "Cash") ? "block" : "none";
+
+  // reset cash tender when switching away
+  if (type !== "Cash") {
+    cashTendered = null;
+    cashMode = null;
+    setCashButtonsActive(null);
+    $("cashManual").style.display = "none";
+    if ($("cashOther")) $("cashOther").value = "";
+    updateChangeDue();
+  } else {
+    updateChangeDue();
+  }
+
+  updateCheckoutEnabled();
+}
+
+function setCashButtonsActive(mode) {
+  document.querySelectorAll(".cashBtn").forEach(b => {
+    b.classList.toggle("active", b.dataset.amt === String(mode));
+  });
+}
+
+function parseCashOther() {
+  const raw = ($("cashOther")?.value || "").trim();
+  const val = parseFloat(raw);
+  return isFinite(val) ? val : null;
+}
+
+function updateChangeDue() {
+  const total = cartTotal();
+  const tendered = (paymentType === "Cash") ? (cashTendered ?? (cashMode === "other" ? parseCashOther() : null)) : null;
+
+  let change = 0;
+  if (paymentType === "Cash" && tendered != null) change = tendered - total;
+  $("changeDue").textContent = money(Math.max(0, change));
+}
+
+function updateCheckoutEnabled() {
+  const total = cartTotal();
+
+  // If cart empty, always block
+  if (total <= 0) {
+    $("checkoutBtn").disabled = true;
+    return;
+  }
+
+  // Venmo: allowed as long as cart has items
+  if (paymentType === "Venmo") {
+    $("checkoutBtn").disabled = false;
+    return;
+  }
+
+  // Cash: require tendered >= total
+  const tendered = (cashMode === "other") ? parseCashOther() : cashTendered;
+  const ok = (tendered != null) && (tendered >= total);
+  $("checkoutBtn").disabled = !ok;
 }
 
 function render() {
@@ -406,6 +546,11 @@ function render() {
   renderCart();
   renderSyncPill();
 }
+  setPayment("Cash");   // default
+$("cashBox").style.display = "block";
+updateChangeDue();
+updateCheckoutEnabled();
+
 
 /** ====== CART ACTIONS ====== **/
 function addToCart(sku) {
@@ -419,6 +564,9 @@ function addToCart(sku) {
 
   renderItems();   // <-- REQUIRED so "left" updates immediately
   renderCart();
+  updateChangeDue();
+updateCheckoutEnabled();
+
 }
 
 
@@ -430,6 +578,9 @@ function changeQty(sku, delta) {
 
   renderItems();   // <-- REQUIRED so "left" increases back when removed
   renderCart();
+  updateChangeDue();
+updateCheckoutEnabled();
+
 }
 
 
@@ -439,6 +590,9 @@ function clearCart() {
 
   renderItems();   // <-- REQUIRED so all "left" values reset back
   renderCart();
+  updateChangeDue();
+updateCheckoutEnabled();
+
 }
 
 
@@ -535,16 +689,40 @@ async function completeSale() {
   const sale = {
     saleId: uuidv4(),
     timestamp: nowIso(),
-    paymentType: $("payment").value,
+    paymentType: paymentType,
     email: ($("email").value || "").trim(),
     items: saleItems
   };
 
+const total = saleItems.reduce((s,it)=>s+it.qty*it.unitPrice,0);
+
+if (paymentType === "Cash") {
+  const tendered = (cashMode === "other") ? parseCashOther() : cashTendered;
+  if (tendered == null) return alert("Select or enter the cash amount received.");
+  if (tendered < total) return alert("Cash received cannot be less than the Total.");
+}
+  
   // Always: apply local inventory + enqueue first (never lose a sale)
   decrementLocalInventoryForSale(sale);
   enqueueSale(sale);
   showReceipt(sale);
+  if (paymentType === "Cash") {
+  const total = sale.items.reduce((s,it)=>s+it.qty*it.unitPrice,0);
+  const tendered = (cashMode === "other") ? parseCashOther() : cashTendered;
+  const change = (tendered ?? 0) - total;
+  alert(`Change due: ${money(Math.max(0, change))}`);
+}
+
   clearCart();
+  if (paymentType === "Cash") {
+  cashTendered = null;
+  cashMode = null;
+  setCashButtonsActive(null);
+  $("cashManual").style.display = "none";
+  $("cashOther").value = "";
+  updateChangeDue();
+}
+
 
   // If online: attempt immediate sync
   if (navigator.onLine) {
@@ -597,10 +775,45 @@ $("clearBtn").onclick = () => { if (confirm("Clear the cart?")) clearCart(); };
 $("printBtn").onclick = () => $("receiptBox").style.display = $("receiptBox").style.display === "none" ? "block" : "none";
 $("syncBtn").onclick = async () => { try { await syncQueue(); alert("Sync attempted."); } catch (e) { alert(String(e.message||e)); } };
 
+  // Payment toggle buttons
+$("payCash").onclick = () => setPayment("Cash");
+$("payVenmo").onclick = () => setPayment("Venmo");
+
+// Cash quick buttons
+document.querySelectorAll(".cashBtn").forEach(btn => {
+  btn.onclick = () => {
+    const v = btn.dataset.amt;
+
+    cashMode = v;
+    setCashButtonsActive(v);
+
+    if (v === "other") {
+      cashTendered = null;
+      $("cashManual").style.display = "block";
+      $("cashOther").focus();
+    } else {
+      $("cashManual").style.display = "none";
+      cashTendered = Number(v);
+    }
+
+    updateChangeDue();
+    updateCheckoutEnabled();
+  };
+});
+
+// Manual cash input
+$("cashOther").addEventListener("input", () => {
+  cashMode = "other";
+  setCashButtonsActive("other");
+  updateChangeDue();
+  updateCheckoutEnabled();
+});
+
 boot();
 </script>
 </body>
 </html>
+
 
 
 
