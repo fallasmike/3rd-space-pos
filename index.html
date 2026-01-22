@@ -152,6 +152,9 @@
     
 /* Void modal list rows clickable */
 #voidSalesList .cartRow:hover { background:#f3f4f6; border-radius:10px; }
+/* Highlight items that are being refunded (qty > 0) */
+.voidingRow { background:#fef3c7; border-radius:10px; padding-left:8px; padding-right:8px; }
+
 
   </style>
 </head>
@@ -371,6 +374,25 @@ const nowIso = () => new Date().toISOString();
   function clearCustomerEmail() {
   const el = $("email");
   if (el) el.value = "";
+}
+
+/*** ====== VOID HELPERS (Step 7.3) ====== ***/
+function getVoidRefundTotal() {
+  if (!selectedSaleForVoid) return 0;
+
+  let refund = 0;
+  selectedSaleForVoid.items.forEach(it => {
+    const q = Number(voidCart[it.sku] || 0);
+    refund += q * Number(it.unitPrice);
+  });
+
+  return refund;
+}
+
+function updateVoidConfirmEnabled() {
+  const refund = getVoidRefundTotal();
+  const ok = !!selectedSaleForVoid && refund > 0;
+  $("voidConfirm").disabled = !ok;
 }
 
   
@@ -1292,6 +1314,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
