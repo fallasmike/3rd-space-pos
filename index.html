@@ -938,24 +938,26 @@ if (paymentType === "Cash") {
 
 
 const sale = {
-  type: "sale",
+  type: "sale", // <-- ADD THIS LINE (must be first is fine)
   saleId: uuidv4(),
   timestamp: nowIso(),
   paymentType: paymentType,
   email: ($("email").value || "").trim(),
   items: saleItems,
 
-  subtotal: subtotal,   // what it would have been
-  total: total,         // what we actually collected (0 for comp)
+  subtotal: subtotal,
+  total: total,
 
   cashGiven: cashGiven,
   changeProvided: changeProvided
 };
 
 
+
   // Always: apply local inventory + enqueue first (never lose a sale)
   decrementLocalInventoryForSale(sale);
   enqueueSale(sale);
+  addSaleToHistory(sale);   // <-- ADD THIS LINE (right here)
   showReceipt(sale);
   addSaleToHistory(sale);
   
@@ -1093,6 +1095,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
