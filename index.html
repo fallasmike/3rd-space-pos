@@ -1048,6 +1048,8 @@ function confirmVoid() {
   const txn = buildVoidTransaction();
   if (!txn) return alert("Select at least 1 item to void/refund.");
 
+  if (!txn.reason) return alert("Reason is required to process a void/refund.");
+  
   if (!confirm(`Confirm refund for ${money(txn.subtotal)}? (Inventory will NOT be restored.)`)) return;
 
   enqueueSale(txn);
@@ -1308,6 +1310,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
