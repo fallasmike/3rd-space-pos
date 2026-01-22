@@ -13,7 +13,7 @@
     header .pill.bad { background:#7f1d1d; }
     header button { background:#2563eb; color:white; border:0; padding:10px 12px; border-radius:10px; font-weight:600; }
     header button#syncBtn { margin-left:0; } /* keep normal */
-    header button#voidBtn { margin-left:auto; background:#111827; } /* push void button left of sync */
+    header button#voidBtn { margin-left:auto; background:#111827; } /* push void button to the right (before Sync) */
 
     main {
   display: grid;
@@ -160,7 +160,6 @@
   <div class="title">3rd Space POS</div>
   <div id="netPill" class="pill bad">Offline</div>
   <div id="syncPill" class="pill">Queue: 0</div>
-  <button id="voidBtn" type="button">Void / Refund</button>
   <button id="voidBtn" type="button">Void / Refund</button>
   <button id="syncBtn" type="button">Sync</button>
 
@@ -1018,7 +1017,6 @@ const sale = {
   enqueueSale(sale);
   addSaleToHistory(sale);   // <-- ADD THIS LINE (right here)
   showReceipt(sale);
-  addSaleToHistory(sale);
   
   if (sale.paymentType === "Cash") {
     alert(`Change due: ${money(sale.changeProvided ?? 0)}`);
@@ -1151,62 +1149,10 @@ $("keyDone").onclick = () => showKeypad(false);
 
 setPayment("Cash");   // default
 boot();
-</script>
-<!-- VOID / REFUND MODAL -->
-<div id="voidModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999;">
-  <div class="card" style="width:min(980px, 96vw); margin:24px auto; padding:12px;">
-    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-      <div style="font-weight:900; font-size:18px;">Void / Refund</div>
-      <button id="voidCloseBtn" type="button" class="btn" style="width:auto; padding:10px 12px;">Close</button>
-    </div>
-
-    <div class="small" style="margin-top:6px;">
-      Select a sale on the left, choose items to refund on the right. <b>Inventory will NOT be restored.</b>
-    </div>
-
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px;">
-      <!-- LEFT: Sales list -->
-      <div class="card" style="padding:10px; max-height:60vh; overflow:auto;">
-        <div style="font-weight:900; margin-bottom:6px;">Sales</div>
-        <div id="voidSalesList"></div>
-      </div>
-
-      <!-- RIGHT: Item selection + refund controls -->
-      <div class="card" style="padding:10px; max-height:60vh; overflow:auto;">
-        <div style="font-weight:900; margin-bottom:6px;">Items to Refund</div>
-        <div id="voidItemsList">
-          <div class="small">Select a sale on the left.</div>
-        </div>
-
-        <div style="margin-top:10px;">
-          <label class="small">Refund Method</label>
-          <div class="payRow">
-            <button id="refundCash" type="button" class="payBtn active">Cash</button>
-            <button id="refundVenmo" type="button" class="payBtn">Venmo</button>
-          </div>
-        </div>
-
-        <div style="margin-top:10px;">
-          <label class="small">Reason (optional)</label>
-          <input id="voidReason" type="text" placeholder="e.g. Spoiled / Wrong item / Customer issue" />
-        </div>
-
-        <div class="totals" style="margin-top:12px;">
-          <div>Refund Total</div>
-          <div id="voidTotal">$0.00</div>
-        </div>
- 
-        <div style="margin-top:10px;">
-          <button id="voidConfirmBtn" type="button" class="btn danger" style="width:100%;">Confirm Void / Refund</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-  
+</script> 
 </body>
 </html>
+
 
 
 
