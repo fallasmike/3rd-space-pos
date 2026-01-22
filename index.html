@@ -804,13 +804,17 @@ if (paymentType === "Cash") {
   changeProvided = Math.max(0, tendered - total);
 }
 
-  const sale = {
-    saleId: uuidv4(),
-    timestamp: nowIso(),
-    paymentType: paymentType,
-    email: ($("email").value || "").trim(),
-    items: saleItems
-  };
+const sale = {
+  saleId: uuidv4(),
+  timestamp: nowIso(),                 // keep ISO for syncing + server truth
+  paymentType: paymentType,
+  email: ($("email").value || "").trim(),
+  items: saleItems,
+  total: total,                        // helpful for server + receipt
+  cashGiven: cashGiven,                // number or null
+  changeProvided: changeProvided        // number or null
+};
+
 
 
   
@@ -952,6 +956,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
