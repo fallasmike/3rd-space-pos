@@ -1014,18 +1014,18 @@ function buildVoidTransaction() {
   const refundSubtotal = voidItems.reduce((s, it) => s + it.qty * it.unitPrice, 0);
 
   return {
-    type: "void",
-    voidId: uuidv4(),
-    timestamp: nowIso(),
+  type: "void",
+  voidId: uuidv4(),
+  timestamp: nowIso(),
 
-    originalSaleId: selectedSaleForVoid.saleId,
-    refundMethod: refundMethod,
-    reason: ($("voidReason").value || "").trim(),
+  originalSaleId: selectedSaleForVoid.saleId,
+  paymentType: refundMethod,   // <-- IMPORTANT
+  reason: ($("voidReason").value || "").trim(),
 
-    items: voidItems,
-    subtotal: refundSubtotal,
-    total: -refundSubtotal
-  };
+  items: voidItems,
+  subtotal: refundSubtotal,
+  total: -refundSubtotal
+};
 }
 
 function confirmVoid() {
@@ -1292,6 +1292,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
