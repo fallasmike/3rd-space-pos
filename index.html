@@ -11,7 +11,10 @@
     header .pill { padding:6px 10px; border-radius:999px; font-size:12px; background:#374151; }
     header .pill.ok { background:#065f46; }
     header .pill.bad { background:#7f1d1d; }
-    header button { margin-left:auto; background:#2563eb; color:white; border:0; padding:10px 12px; border-radius:10px; font-weight:600; }
+    header button { background:#2563eb; color:white; border:0; padding:10px 12px; border-radius:10px; font-weight:600; }
+    header button#syncBtn { margin-left:0; } /* keep normal */
+    header button#voidBtn { margin-left:auto; background:#111827; } /* push void button left of sync */
+
     main {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
@@ -146,6 +149,9 @@
   color: #fff;
   border-color: #111827;
 }
+    
+/* Void modal list rows clickable */
+#voidSalesList .cartRow:hover { background:#f3f4f6; border-radius:10px; }
 
   </style>
 </head>
@@ -1146,6 +1152,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
