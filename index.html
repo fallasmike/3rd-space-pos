@@ -347,7 +347,10 @@ let cart = {}; // sku -> qty
 let paymentType = "Cash";       // "Cash" or "Venmo"
 let cashTendered = null;        // number or null
 let cashMode = null;            // 5/10/15/20/50/"other"/null
- 
+let selectedSaleForVoid = null;     // the original sale object
+let voidCart = {};                  // sku -> qty to void
+let refundMethod = "Cash";          // "Cash" or "Venmo"
+
 
 /** ====== UTILS ====== **/
 const $ = (id) => document.getElementById(id);
@@ -1090,6 +1093,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
