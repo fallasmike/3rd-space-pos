@@ -483,20 +483,17 @@ function setPayment(type) {
   // show/hide cash tender section
   $("cashBox").style.display = (type === "Cash") ? "block" : "none";
 
-  // reset cash tender when switching away
-  if (type !== "Cash") {
-    cashTendered = null;
-    cashMode = null;
-    setCashButtonsActive(null);
-    $("cashManual").style.display = "none";
-    if ($("cashOther")) $("cashOther").value = "";
-    updateChangeDue();
-  } else {
-    updateChangeDue();
-  }
+  // Reset tender state whenever switching payment modes
+  cashTendered = null;
+  cashMode = null;
+  setCashButtonsActive(null);
+  $("cashManual").style.display = "none";
+  if ($("cashOther")) $("cashOther").value = "";
 
+  updateChangeDue();
   updateCheckoutEnabled();
 }
+
 
 function setCashButtonsActive(mode) {
   document.querySelectorAll(".cashBtn").forEach(b => {
@@ -817,6 +814,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
