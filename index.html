@@ -105,6 +105,47 @@
   flex-direction: column;
   gap: 16px;
 }
+    
+.keypad {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.keypadGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.keypadActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.key {
+  padding: 14px 12px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #f3f4f6;
+  font-weight: 900;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.key.secondary {
+  background: #e5e7eb;
+}
+
+.key.done {
+  background: #111827;
+  color: #fff;
+  border-color: #111827;
+}
 
   </style>
 </head>
@@ -160,17 +201,43 @@
     <button type="button" class="cashBtn" data-amt="other">Other</button>
   </div>
 
-  <div id="cashManual" class="cashManual">
-    <label class="small" style="display:block;">Enter amount</label>
-<input
-  id="cashOther"
-  type="text"
-  inputmode="none"
-  readonly
-  placeholder="Tap to enter amount"
-/>
+<div id="cashManual" class="cashManual">
+  <label class="small" style="display:block;">Enter amount</label>
+  <input
+    id="cashOther"
+    type="text"
+    inputmode="none"
+    readonly
+    placeholder="Tap to enter amount"
+  />
+</div>
 
+<!-- Custom keypad (no OS keyboard) -->
+<div id="keypad" class="keypad" style="display:none;">
+  <div class="keypadGrid">
+    <button type="button" class="key" data-k="1">1</button>
+    <button type="button" class="key" data-k="2">2</button>
+    <button type="button" class="key" data-k="3">3</button>
+
+    <button type="button" class="key" data-k="4">4</button>
+    <button type="button" class="key" data-k="5">5</button>
+    <button type="button" class="key" data-k="6">6</button>
+
+    <button type="button" class="key" data-k="7">7</button>
+    <button type="button" class="key" data-k="8">8</button>
+    <button type="button" class="key" data-k="9">9</button>
+
+    <button type="button" class="key secondary" data-k=".">.</button>
+    <button type="button" class="key" data-k="0">0</button>
+    <button type="button" class="key secondary" data-k="back">⌫</button>
   </div>
+
+  <div class="keypadActions">
+    <button type="button" class="key secondary" id="keyClear">Clear</button>
+    <button type="button" class="key done" id="keyDone">Done</button>
+  </div>
+</div>
+
 
   <div class="changeLine">
     <span class="small">Change Due:</span>
@@ -225,6 +292,36 @@ let cashMode = null;            // 5/10/15/20/50/"other"/null
 const $ = (id) => document.getElementById(id);
 const money = (n) => `$${(Number(n)||0).toFixed(2)}`;
 const nowIso = () => new Date().toISOString();
+
+/** ====== KEYPAD (Custom Cash Entry) ====== **/
+function showKeypad(show) {
+  $("keypad").style.display = show ? "block" : "none";
+}
+
+function setCashOtherValue(next) {
+  $("cashOther").value = next;
+  updateChangeDue();
+  updateCheckoutEnabled();
+}
+
+function keypadAppend(ch) {
+  let v = $("cashOther").value || "";
+
+  if (ch === "." && v.includes(".")) return;
+  if (v === "0" && ch !== ".") v = "";
+
+  if (v.includes(".")) {
+    const [_, b] = v.split(".");
+    if (b.length >= 2) return;
+  }
+
+  setCashOtherValue(v + ch);
+}
+
+function keypadBackspace() {
+  const v = $("cashOther").value || "";
+  setCashOtherValue(v.slice(0, -1));
+}
 
 function uuidv4() {
   // good enough for this use-case
@@ -834,6 +931,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
