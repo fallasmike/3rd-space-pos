@@ -703,10 +703,8 @@ function changeQty(sku, delta) {
 function clearCart() {
   cart = {};
   $("receiptBox").style.display = "none";
-  
-  clearCustomerEmail(); // <-- ADD THIS LINE
-  
-  $("email").value = "";   // <-- add this
+
+  clearCustomerEmail();
 
   renderItems();
   renderCart();
@@ -869,7 +867,7 @@ let changeProvided = null;
 if (paymentType === "Cash") {
   const tendered = (cashMode === "other") ? parseCashOther() : cashTendered;
   if (tendered == null) return alert("Select or enter the cash amount received.");
-  if (tendered < subtotal) return alert("Cash received cannot be less than the Total.");
+  if (tendered < subtotal) return alert("Cash received cannot be less than the Subtotal.");
 
   cashGiven = tendered;
   changeProvided = Math.max(0, tendered - subtotal);
@@ -895,7 +893,6 @@ const sale = {
   decrementLocalInventoryForSale(sale);
   enqueueSale(sale);
   showReceipt(sale);
-  $("email").value = "";   // <-- clear customer email after completing sale
 
   
   if (sale.paymentType === "Cash") {
@@ -1032,6 +1029,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
