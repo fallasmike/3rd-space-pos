@@ -392,7 +392,7 @@ function getVoidRefundTotal() {
 function updateVoidConfirmEnabled() {
   const refund = getVoidRefundTotal();
   const ok = !!selectedSaleForVoid && refund > 0;
-  $("voidConfirm").disabled = !ok;
+  $("voidConfirmBtn").disabled = !ok;
 }
 
   
@@ -1236,23 +1236,6 @@ $("syncBtn").onclick = async () => { try { await syncQueue(); alert("Sync attemp
 
 // ====== VOID / REFUND bindings (Step 7.7) ======
 $("voidBtn").onclick = openVoidModal;
-$("voidClose").onclick = closeVoidModal;
-$("voidConfirm").onclick = confirmVoid;
-
-$("refundCash").onclick = () => {
-  refundMethod = "Cash";
-  $("refundCash").classList.add("active");
-  $("refundVenmo").classList.remove("active");
-};
-
-$("refundVenmo").onclick = () => {
-  refundMethod = "Venmo";
-  $("refundVenmo").classList.add("active");
-  $("refundCash").classList.remove("active");
-};
-
-
-$("voidBtn").onclick = openVoidModal;
 $("voidCloseBtn").onclick = closeVoidModal;
 $("refundCash").onclick = () => { refundMethod = "Cash"; $("refundCash").classList.add("active"); $("refundVenmo").classList.remove("active"); };
 $("refundVenmo").onclick = () => { refundMethod = "Venmo"; $("refundVenmo").classList.add("active"); $("refundCash").classList.remove("active"); };
@@ -1325,6 +1308,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
