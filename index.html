@@ -831,8 +831,14 @@ function buildReceiptText(sale) {
 
   lines.push("Thanks for supporting us!");
   lines.push("");
-  lines.push("Receipt:");
+  
+  if (sale.type === "void") {
+    lines.push("Refund Receipt:");
+  } else {
+    lines.push("Receipt:");
+  }
   lines.push("");
+
 
   // Line items
   sale.items.forEach(it => {
@@ -842,7 +848,13 @@ function buildReceiptText(sale) {
   });
 
   lines.push("");
+  if (sale.type === "void") {
+  lines.push(`Refund Method: ${sale.paymentType}`);
+  if (sale.originalSaleId) lines.push(`Original Sale ID: ${sale.originalSaleId}`);
+} else {
   lines.push(`Payment: ${sale.paymentType}`);
+}
+
 
   // ---- Totals logic (IMPORTANT PART) ----
   const subtotal = (sale.subtotal != null)
@@ -853,6 +865,9 @@ function buildReceiptText(sale) {
     ? Number(sale.total)
     : subtotal;
 
+if (sale.type === "void") {
+  lines.push(`Refund Total: ${money(subtotal)}`);
+} else {
   lines.push(`Subtotal: ${money(subtotal)}`);
 
   if (sale.paymentType === "Comp") {
@@ -861,6 +876,7 @@ function buildReceiptText(sale) {
   } else {
     lines.push(`Total: ${money(total)}`);
   }
+}
 
   if (sale.paymentType === "Cash") {
     if (sale.cashGiven != null) {
@@ -874,7 +890,12 @@ function buildReceiptText(sale) {
   lines.push("");
   lines.push(`Date: ${formatDateMMDDYYYY(dt)}`);
   lines.push(`Time: ${formatTime12h(dt)}`);
+  if (sale.type === "void") {
+  lines.push(`Void ID: ${sale.voidId}`);
+} else {
   lines.push(`Sale ID: ${sale.saleId}`);
+}
+
 
   return lines.join("\n");
 }
@@ -1310,6 +1331,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
