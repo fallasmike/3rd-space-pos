@@ -364,6 +364,8 @@ let cashMode = null;            // 5/10/15/20/50/"other"/null
 let selectedSaleForVoid = null;     // the original sale object
 let voidCart = {};                  // sku -> qty to void
 let refundMethod = "Cash";          // "Cash" or "Venmo"
+let isCheckingOut = false;          // prevents double-submit on Complete Sale
+
 
 
 /** ====== UTILS ====== **/
@@ -1160,84 +1162,90 @@ async function syncQueue() {
 
 /** ====== CHECKOUT ====== **/
 async function completeSale() {
-  const entries = Object.entries(cart);
-  if (entries.length === 0) return alert("Cart is empty.");
+  // --- lock to prevent double charge / double submit ---
+  if (isCheckingOut) return;
+  isCheckingOut = true;
+  $("checkoutBtn").disabled = true;
 
-  const inv = getLocalInv();
-  const saleItems = entries.map(([sku, qty]) => {
-    const it = items.find(x => x.sku === sku);
-    return { sku, qty: Number(qty), unitPrice: Number(it.price) };
-  });
+  try {
+    const entries = Object.entries(cart);
+    if (entries.length === 0) return alert("Cart is empty.");
 
-  // local hard-inventory check
-  for (const it of saleItems) {
-    const remaining = inv[it.sku] ?? 0;
-    if (it.qty > remaining) return alert(`Not enough inventory for ${it.sku}.`);
-  }
+    const inv = getLocalInv();
+    const saleItems = entries.map(([sku, qty]) => {
+      const it = items.find(x => x.sku === sku);
+      return { sku, qty: Number(qty), unitPrice: Number(it.price) };
+    });
 
-  const subtotal = saleItems.reduce((s,it)=>s + it.qty * it.unitPrice, 0);
-  const total = (paymentType === "Comp") ? 0 : subtotal;
+    // local hard-inventory check
+    for (const it of saleItems) {
+      const remaining = inv[it.sku] ?? 0;
+      if (it.qty > remaining) return alert(`Not enough inventory for ${it.sku}.`);
+    }
 
+    const subtotal = saleItems.reduce((s,it)=>s + it.qty * it.unitPrice, 0);
+    const total = (paymentType === "Comp") ? 0 : subtotal;
 
-let cashGiven = null;
-let changeProvided = null;
+    let cashGiven = null;
+    let changeProvided = null;
 
-if (paymentType === "Cash") {
-  const tendered = (cashMode === "other") ? parseCashOther() : cashTendered;
-  if (tendered == null) return alert("Select or enter the cash amount received.");
-  if (tendered < subtotal) return alert("Cash received cannot be less than the Subtotal.");
+    if (paymentType === "Cash") {
+      const tendered = (cashMode === "other") ? parseCashOther() : cashTendered;
+      if (tendered == null) return alert("Select or enter the cash amount received.");
+      if (tendered < subtotal) return alert("Cash received cannot be less than the Subtotal.");
 
-  cashGiven = tendered;
-  changeProvided = Math.max(0, tendered - subtotal);
-}
+      cashGiven = tendered;
+      changeProvided = Math.max(0, tendered - subtotal);
+    }
 
+    const sale = {
+      type: "sale",
+      saleId: uuidv4(),
+      timestamp: nowIso(),
+      paymentType: paymentType,
+      email: ($("email").value || "").trim(),
+      items: saleItems,
+      subtotal: subtotal,
+      total: total,
+      cashGiven: cashGiven,
+      changeProvided: changeProvided
+    };
 
-const sale = {
-  type: "sale", // <-- ADD THIS LINE (must be first is fine)
-  saleId: uuidv4(),
-  timestamp: nowIso(),
-  paymentType: paymentType,
-  email: ($("email").value || "").trim(),
-  items: saleItems,
+    // Always: apply local inventory + enqueue first (never lose a sale)
+    decrementLocalInventoryForSale(sale);
+    enqueueSale(sale);
+    addSaleToHistory(sale);
+    showReceipt(sale);
 
-  subtotal: subtotal,
-  total: total,
+    if (sale.paymentType === "Cash") {
+      alert(`Change due: ${money(sale.changeProvided ?? 0)}`);
+    }
 
-  cashGiven: cashGiven,
-  changeProvided: changeProvided
-};
+    clearCart();
 
+    if (paymentType === "Cash") {
+      cashTendered = null;
+      cashMode = null;
+      setCashButtonsActive(null);
+      $("cashManual").style.display = "none";
+      $("cashOther").value = "";
+      showKeypad(false);
+      updateChangeDue();
+      updateCheckoutEnabled();
+    }
 
+    // If online: attempt immediate sync
+    if (navigator.onLine) {
+      try { await syncQueue(); } catch (e) { /* keep queued */ }
+    }
 
-  // Always: apply local inventory + enqueue first (never lose a sale)
-  decrementLocalInventoryForSale(sale);
-  enqueueSale(sale);
-  addSaleToHistory(sale);   // <-- ADD THIS LINE (right here)
-  showReceipt(sale);
-  
-  if (sale.paymentType === "Cash") {
-    alert(`Change due: ${money(sale.changeProvided ?? 0)}`);
-  }
+    render();
 
-  clearCart();
-
-  if (paymentType === "Cash") {
-    cashTendered = null;
-    cashMode = null;
-    setCashButtonsActive(null);
-    $("cashManual").style.display = "none";
-    $("cashOther").value = "";
-    showKeypad(false);
-    updateChangeDue();
+  } finally {
+    // --- always unlock, even if an alert/return happened ---
+    isCheckingOut = false;
     updateCheckoutEnabled();
   }
-
-  // If online: attempt immediate sync
-  if (navigator.onLine) {
-    try { await syncQueue(); } catch (e) { /* keep queued */ }
-  }
-
-  render();
 }
 
 
@@ -1281,7 +1289,30 @@ window.addEventListener("offline", () => setOnlineUI(false));
 $("checkoutBtn").onclick = completeSale;
 $("clearBtn").onclick = () => { if (confirm("Clear the cart?")) clearCart(); };
 $("printBtn").onclick = () => $("receiptBox").style.display = $("receiptBox").style.display === "none" ? "block" : "none";
-$("syncBtn").onclick = async () => { try { await syncQueue(); alert("Sync attempted."); } catch (e) { alert(String(e.message||e)); } };
+$("syncBtn").onclick = async () => {
+  try {
+    const before = loadJSON(K_QUEUE, []).length;
+
+    if (!navigator.onLine) {
+      alert("Offline. Nothing sent (transactions are still queued).");
+      return;
+    }
+
+    await syncQueue();
+
+    const after = loadJSON(K_QUEUE, []).length;
+    const sent = before - after;
+
+    if (sent > 0) {
+      alert(`Synced ${sent} transaction(s). Remaining in queue: ${after}.`);
+    } else {
+      alert(`Nothing new to sync. Queue: ${after}.`);
+    }
+  } catch (e) {
+    alert(String(e.message || e));
+  }
+};
+
 
 // ====== VOID / REFUND bindings (Step 7.7) ======
 $("voidBtn").onclick = openVoidModal;
@@ -1357,6 +1388,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
