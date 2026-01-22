@@ -186,6 +186,7 @@
 <div class="payRow">
   <button id="payCash" type="button" class="payBtn active">Cash</button>
   <button id="payVenmo" type="button" class="payBtn">Venmo</button>
+  <button id="payComp" type="button" class="payBtn">Comp</button>
 </div>
 
 <!-- Cash tender UI -->
@@ -589,6 +590,7 @@ function setPayment(type) {
   // toggle button UI
   $("payCash").classList.toggle("active", type === "Cash");
   $("payVenmo").classList.toggle("active", type === "Venmo");
+  $("payComp").classList.toggle("active", type === "Comp");
 
   // show/hide cash tender section
   $("cashBox").style.display = (type === "Cash") ? "block" : "none";
@@ -608,6 +610,7 @@ function setPayment(type) {
   updateChangeDue();
   updateCheckoutEnabled();
 }
+
 
 
 
@@ -642,8 +645,8 @@ function updateCheckoutEnabled() {
     return;
   }
 
-  // Venmo: allowed as long as cart has items
-  if (paymentType === "Venmo") {
+  // Venmo or Comp: allowed as long as cart has items
+  if (paymentType === "Venmo" || paymentType === "Comp") {
     $("checkoutBtn").disabled = false;
     return;
   }
@@ -653,6 +656,7 @@ function updateCheckoutEnabled() {
   const ok = (tendered != null) && (tendered >= total);
   $("checkoutBtn").disabled = !ok;
 }
+
 
 function render() {
   computeCategories();
@@ -693,11 +697,12 @@ function changeQty(sku, delta) {
 function clearCart() {
   cart = {};
   $("receiptBox").style.display = "none";
-  $("email").value = "";          // <-- clear customer email when clearing cart
-  
-  renderItems();   // <-- REQUIRED so all "left" values reset back
+  $("email").value = "";   // <-- add this
+
+  renderItems();
   renderCart();
 }
+
 
 
 /** ====== RECEIPT ====== **/
@@ -828,30 +833,37 @@ async function completeSale() {
     if (it.qty > remaining) return alert(`Not enough inventory for ${it.sku}.`);
   }
 
-  const total = saleItems.reduce((s,it)=>s + it.qty * it.unitPrice, 0);
+  const subtotal = saleItems.reduce((s,it)=>s + it.qty * it.unitPrice, 0);
+  const total = (paymentType === "Comp") ? 0 : subtotal;
 
-  let cashGiven = null;
-  let changeProvided = null;
 
-  if (paymentType === "Cash") {
-    const tendered = (cashMode === "other") ? parseCashOther() : cashTendered;
-    if (tendered == null) return alert("Select or enter the cash amount received.");
-    if (tendered < total) return alert("Cash received cannot be less than the Total.");
+let cashGiven = null;
+let changeProvided = null;
 
-    cashGiven = tendered;
-    changeProvided = Math.max(0, tendered - total);
-  }
+if (paymentType === "Cash") {
+  const tendered = (cashMode === "other") ? parseCashOther() : cashTendered;
+  if (tendered == null) return alert("Select or enter the cash amount received.");
+  if (tendered < subtotal) return alert("Cash received cannot be less than the Total.");
 
-  const sale = {
-    saleId: uuidv4(),
-    timestamp: nowIso(),
-    paymentType: paymentType,
-    email: ($("email").value || "").trim(),
-    items: saleItems,
-    total: total,
-    cashGiven: cashGiven,
-    changeProvided: changeProvided
-  };
+  cashGiven = tendered;
+  changeProvided = Math.max(0, tendered - subtotal);
+}
+
+
+const sale = {
+  saleId: uuidv4(),
+  timestamp: nowIso(),
+  paymentType: paymentType,
+  email: ($("email").value || "").trim(),
+  items: saleItems,
+
+  subtotal: subtotal,   // what it would have been
+  total: total,         // what we actually collected (0 for comp)
+
+  cashGiven: cashGiven,
+  changeProvided: changeProvided
+};
+
 
   // Always: apply local inventory + enqueue first (never lose a sale)
   decrementLocalInventoryForSale(sale);
@@ -931,6 +943,8 @@ $("syncBtn").onclick = async () => { try { await syncQueue(); alert("Sync attemp
   // Payment toggle buttons
 $("payCash").onclick = () => setPayment("Cash");
 $("payVenmo").onclick = () => setPayment("Venmo");
+$("payComp").onclick = () => setPayment("Comp");
+
 
 // Cash quick buttons (with deselect toggle + keypad)
 document.querySelectorAll(".cashBtn").forEach(btn => {
@@ -992,6 +1006,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
