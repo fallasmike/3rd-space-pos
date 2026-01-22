@@ -294,6 +294,12 @@ const $ = (id) => document.getElementById(id);
 const money = (n) => `$${(Number(n)||0).toFixed(2)}`;
 const nowIso = () => new Date().toISOString();
 
+  function clearCustomerEmail() {
+  const el = $("email");
+  if (el) el.value = "";
+}
+
+  
 /** ====== KEYPAD (Custom Cash Entry) ====== **/
 function showKeypad(show) {
   $("keypad").style.display = show ? "block" : "none";
@@ -697,6 +703,9 @@ function changeQty(sku, delta) {
 function clearCart() {
   cart = {};
   $("receiptBox").style.display = "none";
+  
+  clearCustomerEmail(); // <-- ADD THIS LINE
+  
   $("email").value = "";   // <-- add this
 
   renderItems();
@@ -1023,6 +1032,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
