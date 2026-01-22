@@ -307,16 +307,22 @@ function setCashOtherValue(next) {
 function keypadAppend(ch) {
   let v = $("cashOther").value || "";
 
+  // allow only one decimal
   if (ch === "." && v.includes(".")) return;
+
+  // prevent leading zeros like "00" (but allow "0." etc.)
   if (v === "0" && ch !== ".") v = "";
 
+  // max 2 decimals
   if (v.includes(".")) {
-    const [_, b] = v.split(".");
-    if (b.length >= 2) return;
+    const parts = v.split(".");
+    const decimals = parts[1] || "";
+    if (decimals.length >= 2) return;
   }
 
   setCashOtherValue(v + ch);
 }
+
 
 function keypadBackspace() {
   const v = $("cashOther").value || "";
@@ -904,10 +910,9 @@ document.querySelectorAll(".cashBtn").forEach(btn => {
     if (v === "other") {
       cashTendered = null;
       $("cashManual").style.display = "block";
-      showKeypad(true);         // show keypad
-      // no focus (readonly) needed
+      showKeypad(true);
     } else {
-      showKeypad(false);        // leaving "other" hides keypad
+      showKeypad(false);
       $("cashManual").style.display = "none";
       if ($("cashOther")) $("cashOther").value = "";
       cashTendered = Number(v);
@@ -918,26 +923,7 @@ document.querySelectorAll(".cashBtn").forEach(btn => {
   };
 });
 
-
-    // Otherwise select it
-    cashMode = v;
-    setCashButtonsActive(v);
-
-    if (v === "other") {
-      cashTendered = null;
-      $("cashManual").style.display = "block";
-      $("cashOther").focus();
-    } else {
-      $("cashManual").style.display = "none";
-      if ($("cashOther")) $("cashOther").value = "";
-      cashTendered = Number(v);
-    }
-
-    updateChangeDue();
-    updateCheckoutEnabled();
-  };
-});
-  // Tapping the readonly input opens keypad (only if Other mode is active)
+// Tapping the readonly input opens keypad (only if Other mode is active)
 $("cashOther").addEventListener("click", () => {
   if (cashMode === "other") showKeypad(true);
 });
@@ -959,6 +945,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
