@@ -395,6 +395,22 @@ function updateVoidConfirmEnabled() {
   $("voidConfirmBtn").disabled = !ok;
 }
 
+function getRefundedQtyMapForSale(originalSaleId) {
+  const history = getSalesHistory();
+  const refunded = {}; // sku -> qty already refunded
+
+  history
+    .filter(x => x.type === "void" && x.originalSaleId === originalSaleId)
+    .forEach(v => {
+      (v.items || []).forEach(it => {
+        const sku = it.sku;
+        refunded[sku] = (refunded[sku] || 0) + Number(it.qty || 0);
+      });
+    });
+
+  return refunded;
+}
+
   
 /** ====== KEYPAD (Custom Cash Entry) ====== **/
 function showKeypad(show) {
@@ -1341,6 +1357,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
