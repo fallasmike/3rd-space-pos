@@ -964,7 +964,8 @@ function renderVoidItemsList() {
     const name = item ? item.name : it.sku;
 
     const row = document.createElement("div");
-    row.className = "cartRow";
+    row.className = "cartRow" + ((voidCart[it.sku] ?? 0) > 0 ? " voidingRow" : "");
+
 
     const left = document.createElement("div");
     left.className = "left";
@@ -1305,6 +1306,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
