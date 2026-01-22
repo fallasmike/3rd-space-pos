@@ -1010,18 +1010,9 @@ function renderVoidItemsList() {
 }
 
 function updateVoidTotal() {
-  if (!selectedSaleForVoid) {
-    $("voidTotal").textContent = money(0);
-    return;
-  }
-
-  let refund = 0;
-  selectedSaleForVoid.items.forEach(it => {
-    const q = Number(voidCart[it.sku] || 0);
-    refund += q * Number(it.unitPrice);
-  });
-
+  const refund = getVoidRefundTotal();
   $("voidTotal").textContent = money(refund);
+  updateVoidConfirmEnabled();
 }
 
 function buildVoidTransaction() {
@@ -1314,6 +1305,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
