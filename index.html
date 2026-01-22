@@ -265,6 +265,53 @@
       <div class="receipt" id="receipt"></div>
     </div>
   </aside>
+  <!-- VOID / REFUND MODAL -->
+<div id="voidModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9999;">
+  <div style="max-width:720px; margin:40px auto; background:#fff; border-radius:14px; padding:12px; box-shadow:0 10px 30px rgba(0,0,0,.2);">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+      <div style="font-weight:900; font-size:18px;">Void / Refund (After Sale)</div>
+      <button id="voidClose" type="button" class="btn" style="width:auto; padding:10px 12px; background:#111827;">Close</button>
+    </div>
+
+    <div class="small" style="margin-top:8px;">
+      This creates a negative money transaction and does <b>not</b> restore inventory.
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px;">
+      <div class="card">
+        <div style="font-weight:900; margin-bottom:6px;">Select Sale</div>
+        <div id="voidSalesList" style="max-height:320px; overflow:auto;"></div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:900; margin-bottom:6px;">Select Items to Void</div>
+        <div id="voidItemsList" style="max-height:220px; overflow:auto;"></div>
+
+        <div style="margin-top:10px;">
+          <label class="small">Refund Method</label>
+          <div class="payRow" style="margin-top:6px;">
+            <button id="refundCash" type="button" class="payBtn active">Cash</button>
+            <button id="refundVenmo" type="button" class="payBtn">Venmo</button>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;">
+          <label class="small">Reason (optional)</label>
+          <input id="voidReason" type="text" placeholder="e.g., spoiled, customer unhappy" />
+        </div>
+
+        <div style="margin-top:10px; font-weight:900;">
+          Refund Total: <span id="voidTotal">$0.00</span>
+        </div>
+
+        <div style="margin-top:10px;">
+          <button id="voidConfirm" type="button" class="btn danger" style="background:#dc2626;">Confirm Void</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 </main>
 
 <script>
@@ -1043,6 +1090,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
