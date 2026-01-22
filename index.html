@@ -731,6 +731,7 @@ function buildReceiptText(sale) {
   lines.push("Receipt:");
   lines.push("");
 
+  // Line items
   sale.items.forEach(it => {
     const item = items.find(x => x.sku === it.sku);
     const name = item ? item.name : it.sku;
@@ -740,16 +741,31 @@ function buildReceiptText(sale) {
   lines.push("");
   lines.push(`Payment: ${sale.paymentType}`);
 
-  // totals
+  // ---- Totals logic (IMPORTANT PART) ----
+  const subtotal = (sale.subtotal != null)
+    ? Number(sale.subtotal)
+    : sale.items.reduce((s,it)=>s + it.qty * it.unitPrice, 0);
+
   const total = (sale.total != null)
     ? Number(sale.total)
-    : sale.items.reduce((s,it)=>s+it.qty*it.unitPrice,0);
+    : subtotal;
 
-  lines.push(`Total: ${money(total)}`);
+  lines.push(`Subtotal: ${money(subtotal)}`);
+
+  if (sale.paymentType === "Comp") {
+    lines.push(`Total: ${money(0)}`);
+    lines.push(`Comped: ${money(subtotal)}`);
+  } else {
+    lines.push(`Total: ${money(total)}`);
+  }
 
   if (sale.paymentType === "Cash") {
-    if (sale.cashGiven != null) lines.push(`Cash given: ${money(sale.cashGiven)}`);
-    if (sale.changeProvided != null) lines.push(`Change provided: ${money(sale.changeProvided)}`);
+    if (sale.cashGiven != null) {
+      lines.push(`Cash given: ${money(sale.cashGiven)}`);
+    }
+    if (sale.changeProvided != null) {
+      lines.push(`Change provided: ${money(sale.changeProvided)}`);
+    }
   }
 
   lines.push("");
@@ -759,6 +775,7 @@ function buildReceiptText(sale) {
 
   return lines.join("\n");
 }
+
 
 
 function showReceipt(sale) {
@@ -1006,6 +1023,7 @@ boot();
 </script>
 </body>
 </html>
+
 
 
 
