@@ -1168,19 +1168,25 @@ async function syncQueue() {
 
   // Fix 1: if nothing queued, still refresh to get live inventory
   if (q.length === 0) {
-    if (navigator.onLine) {
-      try {
-        const fresh = await apiGetItems();
-        items = fresh;
-        saveJSON(K_ITEMS, items);
-        rebuildLocalInvFromServerAndQueue(items);
-        render();
-      } catch (e) {
-        console.log(e);
-      }
-    }
-    return;
+if (navigator.onLine) {
+  try {
+    const fresh = await apiGetItems();
+
+    setOnlineUI(true); // ✅ ADD THIS LINE
+
+    items = fresh;
+    saveJSON(K_ITEMS, items);
+
+    // LIVE inventory = server remaining minus any unsynced queued sales
+    rebuildLocalInvFromServerAndQueue(items);
+
+    render();
+
+  } catch (e) {
+    // stay on cached
   }
+}
+
 
   if (!navigator.onLine) {
     alert("Still offline. Sales are safely queued.");
@@ -1347,7 +1353,7 @@ render();
   }
 
   // Update UI
-  setOnlineUI(navigator.onLine);
+  // setOnlineUI(navigator.onLine);
   renderSyncPill();
 }
 
@@ -1463,6 +1469,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
