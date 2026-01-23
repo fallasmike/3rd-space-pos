@@ -1366,7 +1366,7 @@ const saleItems = entries.map(([sku, qty]) => {
 
 /** ====== STARTUP ====== **/
 async function boot() {
-  await refreshOnlineStatus();
+  refreshOnlineStatus(); // don't block initial render
 
 // Load cached items first
 const cached = loadJSON(K_ITEMS, []);
@@ -1522,6 +1522,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
