@@ -342,7 +342,7 @@ function isAlcoholSku_(sku) {
 }
 
 function unitPriceForSku_(sku, basePrice) {
-  return isAlcoholSku_(sku) ? DONATION_PER_ALC : (Number(basePrice) || 0);
+  return (Number(basePrice) || 0);
 }
 
 /** ====== STORAGE KEYS ====== **/
@@ -1491,6 +1491,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
