@@ -1186,20 +1186,21 @@ async function syncQueue() {
   const q = loadJSON(K_QUEUE, []);
 
   // Fix #2 goes HERE
-  if (q.length === 0) {
-    if (navigator.onLine) {
-      try {
-        const fresh = await apiGetItems();
-        items = fresh;
-        saveJSON(K_ITEMS, items);
-        rebuildLocalInvFromServerAndQueue(items);
-        render();
-      } catch (e) {
-        console.log(e);
-      }
+if (q.length === 0) {
+  if (navigator.onLine) {
+    try {
+      const fresh = await apiGetItems();
+      items = fresh.filter(i => String(i.category || "").trim().toLowerCase() !== "alcohol");
+      saveJSON(K_ITEMS, items);
+      rebuildLocalInvFromServerAndQueue(items);
+      render();
+    } catch (e) {
+      console.log(e);
     }
-    return;
   }
+  return;
+}
+
 
 
   if (!navigator.onLine) {
@@ -1230,13 +1231,14 @@ async function syncQueue() {
   if (navigator.onLine) {
     try {
       const fresh = await apiGetItems();
-      items = fresh;
-      saveJSON(K_ITEMS, items);
 
-      // Live inventory = server remaining minus any still-queued unsynced sales
-      rebuildLocalInvFromServerAndQueue(items);
+// HARD BLOCK: remove Alcohol items entirely
+items = fresh.filter(i => String(i.category || "").trim().toLowerCase() !== "alcohol");
 
-      render();
+saveJSON(K_ITEMS, items);
+rebuildLocalInvFromServerAndQueue(items);
+render();
+
     } catch (e) {
       console.log(e);
     }
@@ -1355,13 +1357,17 @@ async function boot() {
   if (navigator.onLine) {
     try {
      const fresh = await apiGetItems();
-items = fresh;
+
+// HARD BLOCK: remove Alcohol items entirely
+items = fresh.filter(i => String(i.category || "").trim().toLowerCase() !== "alcohol");
+
 saveJSON(K_ITEMS, items);
 
-// LIVE inventory = server remaining minus any unsynced queued sales
+// Live inventory = server remaining minus any still-queued unsynced sales
 rebuildLocalInvFromServerAndQueue(items);
 
 render();
+
 
     } catch (e) {
       // stay on cached
@@ -1485,6 +1491,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
