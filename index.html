@@ -922,78 +922,46 @@ function formatTime12h(d) {
 
 function buildReceiptText(sale) {
   const dt = new Date(sale.timestamp);
+
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getDate()).padStart(2, "0");
+  const yyyy = dt.getFullYear();
+
+  const HH = String(dt.getHours()).padStart(2, "0");
+  const Min = String(dt.getMinutes()).padStart(2, "0");
+
+  // Display label mapping (keep internal values the same)
+  const paymentLabel =
+    sale.paymentType === "Venmo" ? "Digital Pay" : sale.paymentType;
+
+  const receiptId = sale.type === "void" ? sale.voidId : sale.saleId;
+
   const lines = [];
-
-  lines.push("Thanks for supporting us!");
+  lines.push("Thanks for supporting the 3rd Space dance company and dancers!");
   lines.push("");
-  
-  if (sale.type === "void") {
-    lines.push("Refund Receipt:");
-  } else {
-    lines.push("Receipt:");
-  }
+  lines.push("Receipt:");
   lines.push("");
 
-
-  // Line items
-  sale.items.forEach(it => {
+  // Line items (pull the name from Items if available)
+  (sale.items || []).forEach(it => {
     const item = items.find(x => x.sku === it.sku);
     const name = item ? item.name : it.sku;
-    lines.push(`${it.qty}x ${name} @ ${money(it.unitPrice)}`);
+    lines.push(`${it.qty}x ${name}`);
   });
 
   lines.push("");
-  if (sale.type === "void") {
-  lines.push(`Refund Method: ${sale.paymentType}`);
-  if (sale.originalSaleId) lines.push(`Original Sale ID: ${sale.originalSaleId}`);
-} else {
-  lines.push(`Payment: ${sale.paymentType}`);
-}
-
-
-  // ---- Totals logic (IMPORTANT PART) ----
-  const subtotal = (sale.subtotal != null)
-    ? Number(sale.subtotal)
-    : sale.items.reduce((s,it)=>s + it.qty * it.unitPrice, 0);
-
-  const total = (sale.total != null)
-    ? Number(sale.total)
-    : subtotal;
-
-if (sale.type === "void") {
-  lines.push(`Refund Total: ${money(subtotal)}`);
-} else {
-  lines.push(`Subtotal: ${money(subtotal)}`);
-
-  if (sale.paymentType === "Comp") {
-    lines.push(`Total: ${money(0)}`);
-    lines.push(`Comped: ${money(subtotal)}`);
-  } else {
-    lines.push(`Total: ${money(total)}`);
-  }
-}
-
-  if (sale.paymentType === "Cash") {
-    if (sale.cashGiven != null) {
-      lines.push(`Cash given: ${money(sale.cashGiven)}`);
-    }
-    if (sale.changeProvided != null) {
-      lines.push(`Change provided: ${money(sale.changeProvided)}`);
-    }
-  }
-
+  lines.push(`Payment Type: ${paymentLabel}`);
   lines.push("");
-  lines.push(`Date: ${formatDateMMDDYYYY(dt)}`);
-  lines.push(`Time: ${formatTime12h(dt)}`);
-  if (sale.type === "void") {
-  lines.push(`Void ID: ${sale.voidId}`);
-} else {
-  lines.push(`Sale ID: ${sale.saleId}`);
-}
-
+  lines.push(`Date: ${mm}-${dd}-${yyyy}`);
+  lines.push(`Time: ${HH}:${Min}`);
+  lines.push("");
+  lines.push(`Receipt ID: ${receiptId}`);
+  lines.push("");
+  lines.push("For more information about 3rd Space, visit us at our website: https://www.3rdspacedance.com/");
 
   return lines.join("\n");
 }
+
 
 
 
@@ -1522,6 +1490,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
