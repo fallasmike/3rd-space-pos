@@ -1151,26 +1151,32 @@ function decrementLocalInventoryForSale(sale) {
 
 async function syncQueue() {
   const q = loadJSON(K_QUEUE, []);
-if (q.length === 0) {
-  // Nothing to send, but still refresh from server to get live inventory
-  if (navigator.onLine) {
-    try {
-      const fresh = await apiGetItems();
-      items = fresh;
-      saveJSON(K_ITEMS, items);
-      rebuildLocalInvFromServerAndQueue(items);
-      render();
-    } catch (e) { console.log(e); }}
-  }
-  return;
-}
-}
 
+  // Fix 1: if nothing queued, still refresh to get live inventory
+  if (q.length === 0) {
+    if (navigator.onLine) {
+      try {
+        const fresh = await apiGetItems();
+        items = fresh;
+        saveJSON(K_ITEMS, items);
+        rebuildLocalInvFromServerAndQueue(items);
+        render();
+      } catch (e) {
+        console.log(e);
+      }
+    }
+    return;
+  }
+
+  if (!navigator.onLine) {
+    alert("Still offline. Sales are safely queued.");
+    return;
+  }
 
   // Send in one batch; server dedup + inventory enforcement
   const results = await apiPostBatch(q);
 
-  // Remove only successes from queue
+  // Remove only failures from queue
   const remaining = [];
   const failed = [];
 
@@ -1186,24 +1192,27 @@ if (q.length === 0) {
   saveJSON(K_QUEUE, remaining);
   renderSyncPill();
 
-  // After syncing, refresh items + rebuild inventory from live server state
-if (navigator.onLine && remaining.length === 0) {
-  try {
-    const fresh = await apiGetItems();
-    items = fresh;
-    saveJSON(K_ITEMS, items);
-    rebuildLocalInvFromServerAndQueue(items);
-    render();
-  } catch (e) {
-    // ignore refresh failures; inventory still ok locally
-  }
-}
+  // Fix 2: ALWAYS refresh from server after sync attempt
+  if (navigator.onLine) {
+    try {
+      const fresh = await apiGetItems();
+      items = fresh;
+      saveJSON(K_ITEMS, items);
 
+      // Live inventory = server remaining minus any still-queued unsynced sales
+      rebuildLocalInvFromServerAndQueue(items);
+
+      render();
+    } catch (e) {
+      console.log(e);
+    }
+  }
 
   if (failed.length) {
     alert(`Synced with ${failed.length} errors. First error: ${failed[0].error}`);
   }
 }
+
 
 /** ====== CHECKOUT ====== **/
 async function completeSale() {
@@ -1433,6 +1442,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
