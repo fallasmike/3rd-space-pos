@@ -1314,7 +1314,7 @@ async function completeSale() {
 
 /** ====== STARTUP ====== **/
 async function boot() {
-  setOnlineUI(navigator.onLine);
+  await refreshOnlineStatus();
 
   // Load cached items first
   const cached = loadJSON(K_ITEMS, []);
@@ -1346,8 +1346,15 @@ render();
   renderSyncPill();
 }
 
-window.addEventListener("online", async () => { setOnlineUI(true); try { await syncQueue(); } catch {} });
-window.addEventListener("offline", () => setOnlineUI(false));
+window.addEventListener("online", async () => {
+  await refreshOnlineStatus();
+  try { await syncQueue(); } catch {}
+});
+
+window.addEventListener("offline", async () => {
+  await refreshOnlineStatus();
+});
+
 
 $("checkoutBtn").onclick = completeSale;
 $("clearBtn").onclick = () => { if (confirm("Clear the cart?")) clearCart(); };
@@ -1451,6 +1458,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
