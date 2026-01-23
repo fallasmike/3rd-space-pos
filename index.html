@@ -334,6 +334,11 @@ const API_URL = "https://script.google.com/macros/s/AKfycby54tn2RVqEqH_E8YSwCvci
 // const API_URL = "https://script.google.com/macros/s/AKfycbw3L7d58jMTxfNiirhzxrob3tZCsyx8p5S0zmJjsHLQa25lRDdlXcPaSasYS5Vc6mQQhg/exec"; //UAT
   
 const TOKEN   = "pos_3rdspace_7F2qM9xR4WkB8DLaYp6N3EJHcT5V";
+const DONATION_PER_ALC = 5;
+
+function isAlcoholSku_(sku) {
+  return String(sku || "").trim().startsWith("ALC-");
+}
 
 /** ====== STORAGE KEYS ====== **/
 const K_ITEMS = "pos_items_cache_v1";
@@ -663,11 +668,10 @@ updateCheckoutEnabled();
     return;
   }
 
-  let total = 0;
+  let total = cartTotal();
   entries.forEach(([sku, qty]) => {
     const it = items.find(x => x.sku === sku);
     if (!it) return;
-    total += qty * Number(it.price);
 
     const row = document.createElement("div");
     row.className = "cartRow";
@@ -717,13 +721,7 @@ function renderSyncPill() {
   $("syncPill").textContent = `Queue: ${q.length}`;
 }
 
-  function cartTotal() {
-  return Object.entries(cart).reduce((sum, [sku, qty]) => {
-    const it = items.find(x => x.sku === sku);
-    if (!it) return sum;
-    return sum + (Number(qty) * Number(it.price));
-  }, 0);
-}
+function cartTotal() {
   
 function setPayment(type) {
   const prev = paymentType;
@@ -1442,6 +1440,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
