@@ -649,7 +649,7 @@ card.appendChild(photo);
   }
 
 // "All" view: group by category with headers + separate grids
-cconst preferredOrder = ["Beverage (NA)", "Food"];
+const preferredOrder = ["Beverage (NA)", "Food"];
 
 const cats = Array.from(new Set(items.map(i => i.category)))
   .sort((a, b) => {
@@ -1522,6 +1522,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
