@@ -187,10 +187,11 @@
 
     <div id="cart"></div>
 
-    <div class="totals">
-      <div>Total</div>
-      <div id="total">$0.00</div>
-    </div>
+<div class="totals">
+  <div>Donation Total</div>
+  <div id="total">$0.00</div>
+</div>
+
 
     <div style="margin-top:12px;">
 <label class="small">Payment Type</label>
@@ -338,6 +339,10 @@ const DONATION_PER_ALC = 5;
 
 function isAlcoholSku_(sku) {
   return String(sku || "").trim().startsWith("ALC-");
+}
+
+function unitPriceForSku_(sku, basePrice) {
+  return isAlcoholSku_(sku) ? DONATION_PER_ALC : (Number(basePrice) || 0);
 }
 
 /** ====== STORAGE KEYS ====== **/
@@ -745,12 +750,11 @@ function cartTotal() {
   return Object.entries(cart).reduce((sum, [sku, qty]) => {
     const it = items.find(x => x.sku === sku);
     if (!it) return sum;
-
-    // Donation pricing: alcohol = $5, others = sheet price
-    const unit = isAlcoholSku_(sku) ? DONATION_PER_ALC : Number(it.price);
-    return sum + (Number(qty) * (Number(unit) || 0));
+    const unit = unitPriceForSku_(sku, it.price);
+    return sum + (Number(qty) * unit);
   }, 0);
 }
+
 
   
 function setPayment(type) {
@@ -1256,10 +1260,12 @@ async function completeSale() {
     if (entries.length === 0) return alert("Cart is empty.");
 
     const inv = getLocalInv();
-    const saleItems = entries.map(([sku, qty]) => {
-      const it = items.find(x => x.sku === sku);
-      return { sku, qty: Number(qty), unitPrice: Number(it.price) };
-    });
+const saleItems = entries.map(([sku, qty]) => {
+  const it = items.find(x => x.sku === sku);
+  const unit = unitPriceForSku_(sku, it.price);
+  return { sku, qty: Number(qty), unitPrice: unit };
+});
+
 
     // local hard-inventory check
     for (const it of saleItems) {
@@ -1479,6 +1485,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
