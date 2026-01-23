@@ -491,8 +491,13 @@ async function apiGetItems() {
   const res = await fetch(url, { method:"GET" });
   const json = await res.json();
   if (!json.ok) throw new Error(json.error || "Failed to load items");
+
+  // ✅ If we successfully got JSON, we're online
+  setOnlineUI(true);
+
   return json.items;
 }
+
 
 async function apiPostBatch(sales) {
   const url = `${API_URL}?route=batch&token=${encodeURIComponent(TOKEN)}`;
@@ -1458,6 +1463,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
