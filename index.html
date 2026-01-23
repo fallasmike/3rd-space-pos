@@ -1345,13 +1345,21 @@ const saleItems = entries.map(([sku, qty]) => {
 async function boot() {
   await refreshOnlineStatus();
 
-  // Load cached items first
-  const cached = loadJSON(K_ITEMS, []);
-  if (cached.length) {
-    items = cached;
-    ensureLocalInvInitialized(items);
-    render();
-  }
+// Load cached items first
+const cached = loadJSON(K_ITEMS, []);
+if (cached.length) {
+  items = cached;
+  ensureLocalInvInitialized(items);
+  render();
+} else {
+  // Fallback: show a clear empty-state immediately (prevents "blank screen")
+  $("itemsGrid").innerHTML = `
+    <div class="small" style="padding:12px;">
+      No items loaded yet. Tap <b>Sync</b> to fetch inventory.
+    </div>
+  `;
+}
+
 
   // Try to refresh from API if online
   if (navigator.onLine) {
@@ -1491,6 +1499,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
