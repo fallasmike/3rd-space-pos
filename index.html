@@ -474,6 +474,17 @@ function setOnlineUI(isOnline) {
   $("netPill").className = "pill " + (isOnline ? "ok" : "bad");
 }
 
+async function refreshOnlineStatus() {
+  try {
+    // If the API responds (even with 401), the internet + endpoint are reachable
+    const url = `${API_URL}?route=items&token=${encodeURIComponent(TOKEN)}`;
+    const res = await fetch(url, { method: "GET" });
+    setOnlineUI(res.ok); // ok = true means you got JSON items
+  } catch (e) {
+    setOnlineUI(false);
+  }
+}
+
 /** ====== API ====== **/
 async function apiGetItems() {
   const url = `${API_URL}?route=items&token=${encodeURIComponent(TOKEN)}`;
@@ -1440,6 +1451,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
