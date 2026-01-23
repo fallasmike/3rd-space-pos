@@ -842,12 +842,26 @@ function updateCheckoutEnabled() {
 
 
 function render() {
+  // Empty-state: prevents blank screen when inventory didn't load
+  if (!items || items.length === 0) {
+    $("catTabs").innerHTML = "";
+    $("itemsGrid").innerHTML = `
+      <div class="small" style="padding:12px;">
+        No inventory loaded. Tap <b>Sync</b> while online.
+      </div>
+    `;
+    renderCart();
+    renderSyncPill();
+    return;
+  }
+
   computeCategories();
   renderTabs();
   renderItems();
   renderCart();
   renderSyncPill();
 }
+
 
 
 
@@ -1508,6 +1522,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
