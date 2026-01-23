@@ -506,6 +506,28 @@ function ensureLocalInvInitialized(fromItems) {
   return inv;
 }
 
+  // Rebuild local inventory from server remaining, then apply any unsynced queued sales.
+// NOTE: voids/refunds do NOT restore inventory by design.
+function rebuildLocalInvFromServerAndQueue(freshItems) {
+  const inv = Object.fromEntries(
+    freshItems.map(i => [i.sku, Number(i.remaining) || 0])
+  );
+
+  const q = loadJSON(K_QUEUE, []);
+  q.forEach(txn => {
+    if (txn.type === "sale") {
+      txn.items.forEach(it => {
+        inv[it.sku] = Math.max(0, (inv[it.sku] ?? 0) - Number(it.qty));
+      });
+    }
+    // txn.type === "void" intentionally does nothing to inventory
+  });
+
+  setLocalInv(inv);
+  return inv;
+}
+
+
 /** ====== RENDER ====== **/
 function computeCategories() {
   const set = new Set(items.map(i => i.category));
@@ -1129,12 +1151,21 @@ function decrementLocalInventoryForSale(sale) {
 
 async function syncQueue() {
   const q = loadJSON(K_QUEUE, []);
-  if (q.length === 0) return;
-
-  if (!navigator.onLine) {
-    alert("Still offline. Sales are safely queued.");
-    return;
+if (q.length === 0) {
+  // Nothing to send, but still refresh from server to get live inventory
+  if (navigator.onLine) {
+    try {
+      const fresh = await apiGetItems();
+      items = fresh;
+      saveJSON(K_ITEMS, items);
+      rebuildLocalInvFromServerAndQueue(items);
+      render();
+    } catch (e) { console.log(e); }}
   }
+  return;
+}
+}
+
 
   // Send in one batch; server dedup + inventory enforcement
   const results = await apiPostBatch(q);
@@ -1154,6 +1185,20 @@ async function syncQueue() {
 
   saveJSON(K_QUEUE, remaining);
   renderSyncPill();
+
+  // After syncing, refresh items + rebuild inventory from live server state
+if (navigator.onLine && remaining.length === 0) {
+  try {
+    const fresh = await apiGetItems();
+    items = fresh;
+    saveJSON(K_ITEMS, items);
+    rebuildLocalInvFromServerAndQueue(items);
+    render();
+  } catch (e) {
+    // ignore refresh failures; inventory still ok locally
+  }
+}
+
 
   if (failed.length) {
     alert(`Synced with ${failed.length} errors. First error: ${failed[0].error}`);
@@ -1264,15 +1309,15 @@ async function boot() {
   // Try to refresh from API if online
   if (navigator.onLine) {
     try {
-      const fresh = await apiGetItems();
-      items = fresh;
-      saveJSON(K_ITEMS, items);
+     const fresh = await apiGetItems();
+items = fresh;
+saveJSON(K_ITEMS, items);
 
-      // If you want "true server remaining" to reset local, uncomment this line:
-      // setLocalInv(Object.fromEntries(items.map(i => [i.sku, Number(i.remaining)||0])));
+// LIVE inventory = server remaining minus any unsynced queued sales
+rebuildLocalInvFromServerAndQueue(items);
 
-      ensureLocalInvInitialized(items);
-      render();
+render();
+
     } catch (e) {
       // stay on cached
     }
@@ -1388,6 +1433,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
