@@ -476,14 +476,18 @@ function setOnlineUI(isOnline) {
 
 async function refreshOnlineStatus() {
   try {
-    // If the API responds (even with 401), the internet + endpoint are reachable
     const url = `${API_URL}?route=items&token=${encodeURIComponent(TOKEN)}`;
-    const res = await fetch(url, { method: "GET" });
-    setOnlineUI(res.ok); // ok = true means you got JSON items
+    const res = await fetch(url, { method: "GET", cache: "no-store" });
+
+    // ✅ If we got ANY HTTP response, we're online
+    setOnlineUI(true);
+
   } catch (e) {
+    // ❌ If fetch throws, we’re actually offline (or blocked)
     setOnlineUI(false);
   }
 }
+
 
 /** ====== API ====== **/
 async function apiGetItems() {
@@ -738,6 +742,16 @@ function renderSyncPill() {
 }
 
 function cartTotal() {
+  return Object.entries(cart).reduce((sum, [sku, qty]) => {
+    const it = items.find(x => x.sku === sku);
+    if (!it) return sum;
+
+    // Donation pricing: alcohol = $5, others = sheet price
+    const unit = isAlcoholSku_(sku) ? DONATION_PER_ALC : Number(it.price);
+    return sum + (Number(qty) * (Number(unit) || 0));
+  }, 0);
+}
+
   
 function setPayment(type) {
   const prev = paymentType;
@@ -1163,29 +1177,25 @@ function decrementLocalInventoryForSale(sale) {
   setLocalInv(inv);
 }
 
+// ✅ syncQueue is NEXT (or very close below)
 async function syncQueue() {
   const q = loadJSON(K_QUEUE, []);
 
-  // Fix 1: if nothing queued, still refresh to get live inventory
+  // Fix #2 goes HERE
   if (q.length === 0) {
-if (navigator.onLine) {
-  try {
-    const fresh = await apiGetItems();
-
-    setOnlineUI(true); // ✅ ADD THIS LINE
-
-    items = fresh;
-    saveJSON(K_ITEMS, items);
-
-    // LIVE inventory = server remaining minus any unsynced queued sales
-    rebuildLocalInvFromServerAndQueue(items);
-
-    render();
-
-  } catch (e) {
-    // stay on cached
+    if (navigator.onLine) {
+      try {
+        const fresh = await apiGetItems();
+        items = fresh;
+        saveJSON(K_ITEMS, items);
+        rebuildLocalInvFromServerAndQueue(items);
+        render();
+      } catch (e) {
+        console.log(e);
+      }
+    }
+    return;
   }
-}
 
 
   if (!navigator.onLine) {
@@ -1469,6 +1479,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
