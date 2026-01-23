@@ -580,6 +580,15 @@ function renderTabs() {
 function renderItems() {
   const grid = $("itemsGrid");
   grid.innerHTML = "";
+    // Empty-state: prevents blank screen when inventory didn't load
+  if (!items || items.length === 0) {
+    grid.innerHTML = `
+      <div class="small" style="padding:12px;">
+        No inventory loaded. Tap <b>Sync</b> to fetch items.
+      </div>
+    `;
+    return;
+  }
 
   const inv = getLocalInv();
 
@@ -1499,6 +1508,7 @@ boot();
 </script> 
 </body>
 </html>
+
 
 
 
